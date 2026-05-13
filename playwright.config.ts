@@ -17,4 +17,34 @@ if (collectCoverage) {
     {
       name: 'Mr. Meeseeks Aquarium — E2E',
       outputFile: './coverage/e2e/test-report.html',
-     
+      coverage: {
+        // Keep only our source under src/ — drop node_modules, vite chunks, etc.
+        entryFilter: (entry: { url: string }) => /\/src\//.test(entry.url),
+        sourceFilter: (path: string) => path.includes('/src/'),
+        reports: [['v8'], ['console-details']],
+      },
+    },
+  ]);
+}
+
+export default defineConfig({
+  testDir: './tests/e2e',
+  testMatch: '**/*.spec.ts',
+  fullyParallel: true,
+  forbidOnly: !!process.env['CI'],
+  retries: process.env['CI'] ? 2 : 0,
+  reporter,
+  use: {
+    baseURL: 'http://localhost:4173',
+    trace: 'on-first-retry',
+  },
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+  ],
+  webServer: {
+    command: 'npm run build && npm run preview',
+    url: 'http://localhost:4173',
+    reuseExistingServer: !process.env['CI'],
+    timeout: 120_000,
+  },
+});

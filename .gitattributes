@@ -1,0 +1,16 @@
+# Normalize line endings on commit. Working tree CRLF on Windows is fine
+# (left to Git's auto-conversion based on core.autocrlf), but the repository
+# always stores LF — this prevents the whole-file-modified phantom diffs we
+# saw on the first Windows roundtrip.
+* text=auto eol=lf
+
+# Lock files: never touched manually; force LF everywhere.
+package-lock.json text eol=lf
+
+# Binary assets (none right now, but pin the rule in case art lands later).
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary

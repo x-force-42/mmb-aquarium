@@ -116,4 +116,7 @@ test.describe('Mr. Meeseeks Aquarium', () => {
     for (let i = 0; i < 15; i++) {
       await page.evaluate(() => window.__aquarium!.sim.decayAll());
     }
-    const min = await page.evaluate(() => Math.min(...window.__aquarium!.world.getAll().map((m) => m.heal
+    const min = await page.evaluate(() => Math.min(...window.__aquarium!.world.getAll().map((m) => m.health)));
+    expect(min).toBe(0);
+  });
+});

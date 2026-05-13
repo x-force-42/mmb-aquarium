@@ -72,11 +72,18 @@ npm run dev              ── Vite dev server on :5173
 npm run typecheck        ── tsc --noEmit, strict
 npm run test:unit        ── Vitest
 npm run test:unit:watch  ── Vitest in watch mode
-npm run test:e2e         ── Playwright (run :install once first)
-npm run test:e2e:install ── playwright install --with-deps chromium
+npm run test:e2e         ── Playwright (auto-installs chromium on first run)
+npm run test:e2e:install ── force playwright install --with-deps chromium
 npm run build            ── tsc + vite build → dist/
 npm run preview          ── serve dist/ on :4173 (what Playwright hits)
 ```
+
+> **First-time setup gotcha.** The very first `npm run test:e2e` will download
+> the Chromium binary (~150MB) via the `pretest:e2e` hook. Subsequent runs are
+> idempotent — Playwright skips the download if the binary is already there.
+> If you see `Executable doesn't exist at ...chrome-headless-shell.exe` and the
+> hook didn't run (e.g. because you invoked `playwright test` directly), run
+> `npm run test:e2e:install` manually.
 
 Or use the slash commands:
 

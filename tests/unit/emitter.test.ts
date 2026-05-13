@@ -100,4 +100,6 @@ describe('Emitter', () => {
     e.emit('ping', 1);
     e.emit('pong', 'x');
     expect(ping).not.toHaveBeenCalled();
-    expect(pong).not.
+    expect(pong).not.toHaveBeenCalled();
+  });
+});

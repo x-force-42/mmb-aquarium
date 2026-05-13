@@ -185,4 +185,8 @@ describe('World', () => {
     it('getFreakingOut filters correctly', () => {
       world.handleMessage({ type: 'event', id: 'a', kind: 'born' });
       world.handleMessage({ type: 'event', id: 'b', kind: 'born' });
-      world.handleMessage({ type: 'event', id: 'b', kind: 'freaking_out' }
+      world.handleMessage({ type: 'event', id: 'b', kind: 'freaking_out' });
+      expect(world.getFreakingOut().map((m) => m.id)).toEqual(['b']);
+    });
+  });
+});
