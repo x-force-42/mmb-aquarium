@@ -207,6 +207,24 @@ The stub is `WebSocketTransport` in `src/transport.ts`.
 
 ---
 
+## Audio system (planned, not yet wired)
+
+A new `AudioSystem` layer will plug in alongside the Renderer to give each
+Meeseeks a voice driven by mood. The full mapping (which line plays in which
+state, weight matrix, cooldowns, chain rules) lives in
+[`docs/audio-map.md`](./docs/audio-map.md). Read that before implementing.
+
+Composition will look like:
+
+```
+Transport ─AppMessage→ World ─WorldEvent→ { Renderer, AudioSystem }
+```
+
+Same architectural rules apply — `AudioSystem` subscribes via `world.on(...)`
+and never reaches into the world's internals.
+
+---
+
 ## Known issues / non-goals
 
 - **Some unit/e2e tests may currently be failing.** Triage with `npm run test:unit` and `npm run test:e2e`, then fix the *behavior* — do not relax the assertion to make red go green.
