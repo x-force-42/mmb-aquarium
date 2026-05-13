@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mr. Meeseeks Aquarium</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #333;
+      background: #ececec;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      padding: 10px 16px;
+      background: #fafafa;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0 12px 0 0;
+      color: #555;
+    }
+    header button {
+      font-size: 13px;
+      padding: 6px 12px;
+      border: 1px solid #bbb;
+      background: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    header button:hover { background: #f0f0f0; border-color: #999; }
+    header button:active { background: #e5e5e5; }
+    #pixi-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(ellipse at center,
+          #fafaf7 0%,
+          #ececec 70%,
+          #dcdcdc 100%);
+      overflow: hidden;
+    }
+    /* Pixel art ready: nearest-neighbor scaling for the canvas. */
+    #pixi-container canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      display: block;
+    }
+    .counter {
+      margin-left: auto;
+      font-size: 12px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Mr. Meeseeks Aquarium</h1>
+    <button id="btn-born">Nasce Meeseeks</button>
+    <button id="btn-died-happy">Mata feliz (aleat.)</button>
+    <button id="btn-died-defeated">Desiste (aleat.)</button>
+    <button id="btn-freaking-out">Surta (aleat.)</button>
+    <button id="btn-recovered">Recupera (aleat.)</button>
+    <button id="btn-decay">Decai saúde de todos</button>
+    <span class="counter" id="counter">0 vivos</span>
+  </header>
+
+  <div id="pixi-container"></div>
+
+  <!-- Vite resolves and bundles from here. -->
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+test-results
+playwright-report
+.vite
+*.log
+
+# Claude Code per-user settings (project-level `settings.json` would be committed)
+.claude/settings.local.json
