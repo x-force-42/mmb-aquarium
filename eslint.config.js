@@ -35,6 +35,10 @@ export default tseslint.config(
       'node_modules/**',
       'public/**',
       '.husky/_/**',
+      // Claude Code per-session worktrees live under .claude/worktrees/.
+      // They're separate working copies of other branches; never lint them
+      // from here — they have their own ESLint run.
+      '.claude/**',
     ],
   },
 
