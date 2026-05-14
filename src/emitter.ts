@@ -49,7 +49,6 @@ export class Emitter<TEvents extends { [K in keyof TEvents]: EventCallback }> {
       try {
         (cb as (...a: Parameters<TEvents[K]>) => void)(...args);
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error(`Emitter[${String(event)}] handler threw:`, err);
       }
     }

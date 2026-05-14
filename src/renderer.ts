@@ -40,9 +40,9 @@ export class Renderer {
     this.app = new Application({
       width: opts.width ?? CANVAS_W,
       height: opts.height ?? CANVAS_H,
-      backgroundAlpha: 0,    // CSS gradient lives on the parent div
-      antialias: false,      // crisp edges
-      resolution: 1,         // keep 1:1 so CSS `image-rendering: pixelated` works
+      backgroundAlpha: 0, // CSS gradient lives on the parent div
+      antialias: false, // crisp edges
+      resolution: 1, // keep 1:1 so CSS `image-rendering: pixelated` works
       autoDensity: false,
     });
     container.appendChild(this.app.view as unknown as HTMLCanvasElement);
@@ -57,17 +57,21 @@ export class Renderer {
 
   /** Subscribe to a World. Renderer is single-bind by design. */
   bind(world: World): void {
-    world.on('onBorn',         (m) => this.handleBorn(m));
-    world.on('onStateChange',  (m) => this.handleStateChange(m));
-    world.on('onDiedHappy',    (m) => this.handleDeath(m, 'happy'));
+    world.on('onBorn', (m) => this.handleBorn(m));
+    world.on('onStateChange', (m) => this.handleStateChange(m));
+    world.on('onDiedHappy', (m) => this.handleDeath(m, 'happy'));
     world.on('onDiedDefeated', (m) => this.handleDeath(m, 'defeated'));
-    world.on('onFreakingOut',  (m) => this.handleFreakingOut(m));
-    world.on('onRecovered',    (m) => this.handleRecovered(m));
+    world.on('onFreakingOut', (m) => this.handleFreakingOut(m));
+    world.on('onRecovered', (m) => this.handleRecovered(m));
   }
 
   // Test-only inspection hooks (kept narrow so e2e can probe state).
-  spriteCount(): number { return this.sprites.size; }
-  hasSprite(id: string): boolean { return this.sprites.has(id); }
+  spriteCount(): number {
+    return this.sprites.size;
+  }
+  hasSprite(id: string): boolean {
+    return this.sprites.has(id);
+  }
 
   /**
    * Horizontal pan in [-1, 1] based on the sprite's screen-x center.

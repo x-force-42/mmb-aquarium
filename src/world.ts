@@ -8,13 +8,7 @@
  */
 
 import { Emitter } from './emitter';
-import type {
-  AppMessage,
-  MeeseeksId,
-  MeeseeksState,
-  WorldEvents,
-  WorldQuery,
-} from './types';
+import type { AppMessage, MeeseeksId, MeeseeksState, WorldEvents, WorldQuery } from './types';
 
 function clamp01(n: number): number {
   if (!Number.isFinite(n)) return 0;

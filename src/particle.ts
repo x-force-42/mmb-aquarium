@@ -13,8 +13,10 @@ export class Particle {
   private readonly maxLife: number;
 
   constructor(
-    x: number, y: number,
-    vx: number, vy: number,
+    x: number,
+    y: number,
+    vx: number,
+    vy: number,
     color: number,
     lifeMs: number,
     sizePx: number,
@@ -38,6 +40,10 @@ export class Particle {
     this.gfx.alpha = Math.max(0, this.life / this.maxLife);
   }
 
-  isDead(): boolean { return this.life <= 0; }
-  destroy(): void { this.gfx.destroy(); }
+  isDead(): boolean {
+    return this.life <= 0;
+  }
+  destroy(): void {
+    this.gfx.destroy();
+  }
 }

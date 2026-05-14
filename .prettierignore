@@ -1,0 +1,8 @@
+dist/
+coverage/
+test-results/
+playwright-report/
+node_modules/
+public/audio/
+.husky/_/
+package-lock.json

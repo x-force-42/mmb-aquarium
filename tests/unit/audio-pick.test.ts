@@ -10,7 +10,10 @@ import {
 import type { Mood } from '../../src/audio-mood';
 
 /** A `random` that returns the given fixed value on every call. */
-const fixed = (v: number): (() => number) => () => v;
+const fixed =
+  (v: number): (() => number) =>
+  () =>
+    v;
 
 /** Sequence-based random for multi-call sites. */
 function seq(values: number[]): () => number {
@@ -37,8 +40,14 @@ describe('AUDIO_IDS / AUDIO_FILES', () => {
 
 describe('WEIGHT_MATRIX', () => {
   const moods: Mood[] = [
-    'newborn', 'healthy', 'declining', 'critical',
-    'freakingOut', 'recovered', 'dyingHappy', 'dyingDefeated',
+    'newborn',
+    'healthy',
+    'declining',
+    'critical',
+    'freakingOut',
+    'recovered',
+    'dyingHappy',
+    'dyingDefeated',
   ];
 
   it('defines a row for every mood, with all 10 audio ids', () => {
@@ -148,14 +157,14 @@ describe('pickChain', () => {
     // boundary: 0.35 → not in [0, 0.35), is in [0.35, 0.50) → lookAtMe
     expect(pickChain('imMrMeeseeks', 'newborn', fixed(0.35))).toBe('lookAtMe');
     expect(pickChain('imMrMeeseeks', 'newborn', fixed(0.49))).toBe('lookAtMe');
-    expect(pickChain('imMrMeeseeks', 'newborn', fixed(0.50))).toBeNull();
+    expect(pickChain('imMrMeeseeks', 'newborn', fixed(0.5))).toBeNull();
     expect(pickChain('imMrMeeseeks', 'newborn', fixed(0.99))).toBeNull();
   });
 
   it('mrMeeseeks shares the imMrMeeseeks chain table', () => {
-    expect(pickChain('mrMeeseeks', 'newborn', fixed(0.10))).toBe('canDo');
-    expect(pickChain('mrMeeseeks', 'newborn', fixed(0.40))).toBe('lookAtMe');
-    expect(pickChain('mrMeeseeks', 'newborn', fixed(0.80))).toBeNull();
+    expect(pickChain('mrMeeseeks', 'newborn', fixed(0.1))).toBe('canDo');
+    expect(pickChain('mrMeeseeks', 'newborn', fixed(0.4))).toBe('lookAtMe');
+    expect(pickChain('mrMeeseeks', 'newborn', fixed(0.8))).toBeNull();
   });
 
   it('lookAtMe → 25% canDo, else silence', () => {
@@ -166,7 +175,7 @@ describe('pickChain', () => {
 
   it('canDo only chains in healthy (10% letMeTry)', () => {
     expect(pickChain('canDo', 'healthy', fixed(0.09))).toBe('letMeTry');
-    expect(pickChain('canDo', 'healthy', fixed(0.10))).toBeNull();
+    expect(pickChain('canDo', 'healthy', fixed(0.1))).toBeNull();
     expect(pickChain('canDo', 'declining', fixed(0.0))).toBeNull();
     expect(pickChain('canDo', 'critical', fixed(0.0))).toBeNull();
     expect(pickChain('canDo', 'recovered', fixed(0.0))).toBeNull();
@@ -181,14 +190,16 @@ describe('pickChain', () => {
   it('letMeTry only chains in critical or freakingOut (30% mistakes...)', () => {
     expect(pickChain('letMeTry', 'critical', fixed(0.29))).toBe('mistakesDontExistThisLong');
     expect(pickChain('letMeTry', 'freakingOut', fixed(0.29))).toBe('mistakesDontExistThisLong');
-    expect(pickChain('letMeTry', 'critical', fixed(0.30))).toBeNull();
+    expect(pickChain('letMeTry', 'critical', fixed(0.3))).toBeNull();
     expect(pickChain('letMeTry', 'declining', fixed(0.0))).toBeNull();
     expect(pickChain('letMeTry', 'healthy', fixed(0.0))).toBeNull();
   });
 
   it('mistakes... only chains in freakingOut (20% iJustWantToDie)', () => {
-    expect(pickChain('mistakesDontExistThisLong', 'freakingOut', fixed(0.19))).toBe('iJustWantToDie');
-    expect(pickChain('mistakesDontExistThisLong', 'freakingOut', fixed(0.20))).toBeNull();
+    expect(pickChain('mistakesDontExistThisLong', 'freakingOut', fixed(0.19))).toBe(
+      'iJustWantToDie',
+    );
+    expect(pickChain('mistakesDontExistThisLong', 'freakingOut', fixed(0.2))).toBeNull();
     expect(pickChain('mistakesDontExistThisLong', 'critical', fixed(0.0))).toBeNull();
     expect(pickChain('mistakesDontExistThisLong', 'dyingDefeated', fixed(0.0))).toBeNull();
   });

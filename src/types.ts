@@ -5,6 +5,7 @@
  * can import these without dragging in DOM or Pixi.
  */
 
+// eslint-disable-next-line sonarjs/redundant-type-aliases -- reason: kept as a documentation handle ("this string is a Meeseeks id"); structural typing is intentional.
 export type MeeseeksId = string;
 
 /** Internal, normalized state of a single Meeseeks. */
@@ -16,12 +17,7 @@ export interface MeeseeksState {
   task: string | null;
 }
 
-export type EventKind =
-  | 'born'
-  | 'died_happy'
-  | 'died_defeated'
-  | 'freaking_out'
-  | 'recovered';
+export type EventKind = 'born' | 'died_happy' | 'died_defeated' | 'freaking_out' | 'recovered';
 
 /** Shape of a Meeseeks as it arrives in a snapshot — fields beyond id are optional. */
 export interface MeeseeksSnapshotEntry {

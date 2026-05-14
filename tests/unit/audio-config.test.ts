@@ -95,27 +95,35 @@ describe('parseAudioConfig', () => {
     expect(parseAudioConfig({ VITE_AUDIO_CONCURRENT_CAP: '8' }, warn).concurrentCap).toBe(8);
     expect(warn).not.toHaveBeenCalled();
 
-    const cfg = parseAudioConfig({
-      VITE_AUDIO_BIRTH_BURST_CAP: '2.5',
-      VITE_AUDIO_CONCURRENT_CAP: '0',
-    }, warn);
+    const cfg = parseAudioConfig(
+      {
+        VITE_AUDIO_BIRTH_BURST_CAP: '2.5',
+        VITE_AUDIO_CONCURRENT_CAP: '0',
+      },
+      warn,
+    );
     expect(cfg.birthBurstCap).toBe(DEFAULT_AUDIO_CONFIG.birthBurstCap);
     expect(cfg.concurrentCap).toBe(DEFAULT_AUDIO_CONFIG.concurrentCap);
     expect(warn).toHaveBeenCalledTimes(2);
   });
 
   it('never throws on garbage input', () => {
-    expect(() => parseAudioConfig({
-      VITE_AUDIO_DEFAULT_MUTED: '??',
-      VITE_AUDIO_PITCH_OFFSETS: ',,,',
-      VITE_AUDIO_BIRTH_BURST_CAP: 'NaN',
-      VITE_AUDIO_BIRTH_BURST_WINDOW_MS: 'foo',
-      VITE_AUDIO_COOLDOWN_S: 'nope',
-      VITE_AUDIO_CONCURRENT_CAP: '-3',
-      VITE_AUDIO_AMBIENT_ENABLED: 'sometimes',
-      VITE_AUDIO_MASTER_VOLUME: '11',
-      VITE_AUDIO_AMBIENT_VOLUME: 'banana',
-    }, () => {})).not.toThrow();
+    expect(() =>
+      parseAudioConfig(
+        {
+          VITE_AUDIO_DEFAULT_MUTED: '??',
+          VITE_AUDIO_PITCH_OFFSETS: ',,,',
+          VITE_AUDIO_BIRTH_BURST_CAP: 'NaN',
+          VITE_AUDIO_BIRTH_BURST_WINDOW_MS: 'foo',
+          VITE_AUDIO_COOLDOWN_S: 'nope',
+          VITE_AUDIO_CONCURRENT_CAP: '-3',
+          VITE_AUDIO_AMBIENT_ENABLED: 'sometimes',
+          VITE_AUDIO_MASTER_VOLUME: '11',
+          VITE_AUDIO_AMBIENT_VOLUME: 'banana',
+        },
+        () => {},
+      ),
+    ).not.toThrow();
   });
 
   describe('ambient + volume mix', () => {
@@ -142,20 +150,29 @@ describe('parseAudioConfig', () => {
     });
 
     it('accepts the boundaries 0 and 1', () => {
-      const lo = parseAudioConfig({ VITE_AUDIO_MASTER_VOLUME: '0', VITE_AUDIO_AMBIENT_VOLUME: '0' });
+      const lo = parseAudioConfig({
+        VITE_AUDIO_MASTER_VOLUME: '0',
+        VITE_AUDIO_AMBIENT_VOLUME: '0',
+      });
       expect(lo.masterVolume).toBe(0);
       expect(lo.ambientVolume).toBe(0);
-      const hi = parseAudioConfig({ VITE_AUDIO_MASTER_VOLUME: '1', VITE_AUDIO_AMBIENT_VOLUME: '1' });
+      const hi = parseAudioConfig({
+        VITE_AUDIO_MASTER_VOLUME: '1',
+        VITE_AUDIO_AMBIENT_VOLUME: '1',
+      });
       expect(hi.masterVolume).toBe(1);
       expect(hi.ambientVolume).toBe(1);
     });
 
     it('falls back when a volume is out of [0, 1] (negative or > 1)', () => {
       const warn = vi.fn();
-      const cfg = parseAudioConfig({
-        VITE_AUDIO_MASTER_VOLUME: '-0.1',
-        VITE_AUDIO_AMBIENT_VOLUME: '1.5',
-      }, warn);
+      const cfg = parseAudioConfig(
+        {
+          VITE_AUDIO_MASTER_VOLUME: '-0.1',
+          VITE_AUDIO_AMBIENT_VOLUME: '1.5',
+        },
+        warn,
+      );
       expect(cfg.masterVolume).toBe(1.0);
       expect(cfg.ambientVolume).toBe(0.4);
       expect(warn).toHaveBeenCalledTimes(2);
@@ -163,10 +180,13 @@ describe('parseAudioConfig', () => {
 
     it('falls back when a volume is non-numeric', () => {
       const warn = vi.fn();
-      const cfg = parseAudioConfig({
-        VITE_AUDIO_MASTER_VOLUME: 'banana',
-        VITE_AUDIO_AMBIENT_VOLUME: 'NaN',
-      }, warn);
+      const cfg = parseAudioConfig(
+        {
+          VITE_AUDIO_MASTER_VOLUME: 'banana',
+          VITE_AUDIO_AMBIENT_VOLUME: 'NaN',
+        },
+        warn,
+      );
       expect(cfg.masterVolume).toBe(1.0);
       expect(cfg.ambientVolume).toBe(0.4);
       expect(warn).toHaveBeenCalledTimes(2);

@@ -6,13 +6,17 @@ import type { AppMessage, MeeseeksState, WorldQuery } from '../../src/types';
  * Build a query stub backed by an in-memory array so tests can rehearse
  * the "world view" the simulator sees, without dragging in the real World.
  */
-function makeQuery(initial: MeeseeksState[] = []): WorldQuery & { set: (xs: MeeseeksState[]) => void } {
+function makeQuery(
+  initial: MeeseeksState[] = [],
+): WorldQuery & { set: (xs: MeeseeksState[]) => void } {
   let items = initial.slice();
   return {
     getAll: () => items.map((m) => ({ ...m })),
     getAlive: () => items.map((m) => ({ ...m })),
     getFreakingOut: () => items.filter((m) => m.isFreakingOut).map((m) => ({ ...m })),
-    set(xs) { items = xs.slice(); },
+    set(xs) {
+      items = xs.slice();
+    },
   };
 }
 
@@ -37,7 +41,13 @@ describe('SimulatorTransport', () => {
     const msgs = tape(sim);
     sim.born();
     expect(msgs).toEqual([
-      { type: 'event', id: 'fixed-id', kind: 'born', name: 'Mr. Meeseeks', task: 'two-stroke my golf swing' },
+      {
+        type: 'event',
+        id: 'fixed-id',
+        kind: 'born',
+        name: 'Mr. Meeseeks',
+        task: 'two-stroke my golf swing',
+      },
     ]);
   });
 
@@ -70,7 +80,7 @@ describe('SimulatorTransport', () => {
 
   it('triggerFreakOut only considers non-freaking Meeseeks', () => {
     query.set([
-      { id: 'a', health: 1, isFreakingOut: true,  name: null, task: null },
+      { id: 'a', health: 1, isFreakingOut: true, name: null, task: null },
       { id: 'b', health: 1, isFreakingOut: false, name: null, task: null },
     ]);
     const sim = new SimulatorTransport(query, { random: () => 0 });
@@ -81,7 +91,7 @@ describe('SimulatorTransport', () => {
 
   it('recover picks from freaking only', () => {
     query.set([
-      { id: 'a', health: 1, isFreakingOut: true,  name: null, task: null },
+      { id: 'a', health: 1, isFreakingOut: true, name: null, task: null },
       { id: 'b', health: 1, isFreakingOut: false, name: null, task: null },
     ]);
     const sim = new SimulatorTransport(query, { random: () => 0 });
@@ -127,7 +137,9 @@ describe('SimulatorTransport', () => {
     const sim = new SimulatorTransport(query);
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const second = vi.fn();
-    sim.onMessage(() => { throw new Error('nope'); });
+    sim.onMessage(() => {
+      throw new Error('nope');
+    });
     sim.onMessage(second);
     sim.born();
     expect(second).toHaveBeenCalled();
@@ -150,7 +162,14 @@ describe('SimulatorTransport', () => {
     it('wires click events to the right actions', () => {
       const sim = new SimulatorTransport(query, { random: () => 0 });
       const msgs = tape(sim);
-      sim.bindButtons({ born: 'b1', diedHappy: 'b2', diedDefeated: 'b3', freakingOut: 'b4', recovered: 'b5', decay: 'b6' });
+      sim.bindButtons({
+        born: 'b1',
+        diedHappy: 'b2',
+        diedDefeated: 'b3',
+        freakingOut: 'b4',
+        recovered: 'b5',
+        decay: 'b6',
+      });
 
       document.getElementById('b1')!.click(); // born
       expect(msgs.at(-1)).toMatchObject({ type: 'event', kind: 'born' });
@@ -158,9 +177,16 @@ describe('SimulatorTransport', () => {
 
     it('throws if a required button is missing', () => {
       const sim = new SimulatorTransport(query);
-      expect(() => sim.bindButtons({
-        born: 'missing', diedHappy: 'b2', diedDefeated: 'b3', freakingOut: 'b4', recovered: 'b5', decay: 'b6',
-      })).toThrow(/missing button/);
+      expect(() =>
+        sim.bindButtons({
+          born: 'missing',
+          diedHappy: 'b2',
+          diedDefeated: 'b3',
+          freakingOut: 'b4',
+          recovered: 'b5',
+          decay: 'b6',
+        }),
+      ).toThrow(/missing button/);
     });
   });
 });

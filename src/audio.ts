@@ -13,13 +13,7 @@
  */
 
 import { deriveMood, type AliveMood, type Mood } from './audio-mood';
-import {
-  AUDIO_FILES,
-  AUDIO_IDS,
-  pickAudio,
-  pickChain,
-  type AudioId,
-} from './audio-pick';
+import { AUDIO_FILES, AUDIO_IDS, pickAudio, pickChain, type AudioId } from './audio-pick';
 import type { AudioConfig } from './audio-config';
 import { PREFS_STORAGE_KEY, validatePrefs, type AudioPrefs } from './audio-prefs';
 import type { MeeseeksId, MeeseeksState } from './types';
@@ -133,8 +127,7 @@ export class AudioSystem implements AudioPublicHook {
     const Ctor =
       typeof window !== 'undefined'
         ? (window.AudioContext ??
-            (window as unknown as { webkitAudioContext?: typeof AudioContext })
-              .webkitAudioContext)
+          (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)
         : undefined;
     if (!Ctor) {
       console.warn('[audio] Web Audio API unavailable; audio disabled.');
@@ -182,11 +175,11 @@ export class AudioSystem implements AudioPublicHook {
   bind(world: World): void {
     if (this.bound || this.destroyed) return;
     this.bound = true;
-    this.unsubs.push(world.on('onBorn',         (m) => this.handleBorn(m)));
-    this.unsubs.push(world.on('onStateChange',  (m, prev) => this.handleStateChange(m, prev)));
-    this.unsubs.push(world.on('onFreakingOut',  (m) => this.handleFreakingOut(m)));
-    this.unsubs.push(world.on('onRecovered',    (m) => this.handleRecovered(m)));
-    this.unsubs.push(world.on('onDiedHappy',    (m) => this.handleDeath(m, 'dyingHappy')));
+    this.unsubs.push(world.on('onBorn', (m) => this.handleBorn(m)));
+    this.unsubs.push(world.on('onStateChange', (m, prev) => this.handleStateChange(m, prev)));
+    this.unsubs.push(world.on('onFreakingOut', (m) => this.handleFreakingOut(m)));
+    this.unsubs.push(world.on('onRecovered', (m) => this.handleRecovered(m)));
+    this.unsubs.push(world.on('onDiedHappy', (m) => this.handleDeath(m, 'dyingHappy')));
     this.unsubs.push(world.on('onDiedDefeated', (m) => this.handleDeath(m, 'dyingDefeated')));
   }
 
@@ -378,12 +371,7 @@ export class AudioSystem implements AudioPublicHook {
   // Play pipeline
   // ---------------------------------------------------------------------------
 
-  private queueEventPlay(
-    id: MeeseeksId,
-    mood: Mood,
-    opts: PlayOptions,
-    deadlineAt?: number,
-  ): void {
+  private queueEventPlay(id: MeeseeksId, mood: Mood, opts: PlayOptions, deadlineAt?: number): void {
     if (this.muted || this.destroyed) return;
     if (this.activePlaybacks < this.config.concurrentCap) {
       this.tryPlay(id, mood, opts);
@@ -413,7 +401,11 @@ export class AudioSystem implements AudioPublicHook {
   private cancelActive(s: MeeseeksAudioState): void {
     if (s.activeCancelToken) s.activeCancelToken.cancelled = true;
     if (s.activeSource) {
-      try { s.activeSource.stop(); } catch { /* noop */ }
+      try {
+        s.activeSource.stop();
+      } catch {
+        /* noop */
+      }
     }
     s.activeSource = null;
     s.activeCancelToken = null;
@@ -466,9 +458,21 @@ export class AudioSystem implements AudioPublicHook {
       if (ended) return;
       ended = true;
       this.activePlaybacks = Math.max(0, this.activePlaybacks - 1);
-      try { source.disconnect(); } catch { /* noop */ }
-      try { gain.disconnect(); } catch { /* noop */ }
-      try { panner.disconnect(); } catch { /* noop */ }
+      try {
+        source.disconnect();
+      } catch {
+        /* noop */
+      }
+      try {
+        gain.disconnect();
+      } catch {
+        /* noop */
+      }
+      try {
+        panner.disconnect();
+      } catch {
+        /* noop */
+      }
 
       if (cancelToken.cancelled) return;
 
@@ -557,7 +561,11 @@ export class AudioSystem implements AudioPublicHook {
     }
     if (!raw) return;
     let parsed: unknown;
-    try { parsed = JSON.parse(raw); } catch { return; }
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return;
+    }
     const prefs = validatePrefs(parsed);
     if (prefs.ambientEnabled !== undefined) this.ambientEnabled = prefs.ambientEnabled;
     if (prefs.masterVolume !== undefined) this.masterVolume = prefs.masterVolume;
@@ -584,14 +592,22 @@ export class AudioSystem implements AudioPublicHook {
 // ---------------------------------------------------------------------------
 function ambientProbability(mood: Mood): number {
   switch (mood) {
-    case 'newborn':       return 0;
-    case 'healthy':       return 0.12;
-    case 'declining':     return 0.18;
-    case 'critical':      return 0.28;
-    case 'freakingOut':   return 0.50;
-    case 'recovered':     return 0.25;
-    case 'dyingHappy':    return 0;
-    case 'dyingDefeated': return 0;
+    case 'newborn':
+      return 0;
+    case 'healthy':
+      return 0.12;
+    case 'declining':
+      return 0.18;
+    case 'critical':
+      return 0.28;
+    case 'freakingOut':
+      return 0.5;
+    case 'recovered':
+      return 0.25;
+    case 'dyingHappy':
+      return 0;
+    case 'dyingDefeated':
+      return 0;
   }
 }
 

@@ -3,7 +3,7 @@
 > **Audience:** an AI coding agent (Claude Code) walking in cold to implement
 > the AudioSystem layer.
 > **Source of truth:** every decision was made in `docs/audio-map.md`. Read it
-> first. This prompt is the *task brief*, not the spec.
+> first. This prompt is the _task brief_, not the spec.
 
 ---
 
@@ -56,28 +56,28 @@ works without import-time bundling.
 
 ### New files
 
-| Path                                            | Purpose                                                                                       |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `public/audio/*.mp3`                            | The 10 renamed voice clips.                                                                   |
-| `.env.example`                                  | Documented defaults — copy of the env block from `docs/audio-map.md` → Configuration.        |
-| `src/audio-config.ts`                           | Pure module: parses `import.meta.env.VITE_AUDIO_*` into a typed `AudioConfig`, with fallbacks. Never throws. |
-| `src/audio-mood.ts`                             | Pure module: `deriveMood(state, ctx) → Mood`. No DOM, no Web Audio. Fully unit-testable.      |
-| `src/audio-pick.ts`                             | Pure module: weighted pick over the mood matrix + chain decision. Takes `random: () => number` for determinism. |
-| `src/audio.ts`                                  | `AudioSystem` class. Owns the `AudioContext`, decoded buffers, ambient tick, mute toggle, and the `window.__aquarium.audio` test hook. |
-| `tests/unit/audio-config.test.ts`               | Env parsing edge cases (missing, malformed, comma-separated lists).                          |
-| `tests/unit/audio-mood.test.ts`                 | Every mood transition (newborn, healthy, declining, critical, freakingOut, recovered, dyingHappy, dyingDefeated), boundary values (`health=0.4`, `health=0.7`). |
-| `tests/unit/audio-pick.test.ts`                 | Weighted pick respects the matrix, never picks weight-0 entries, excludes the last-played id, chain probabilities behave as specified. |
+| Path                              | Purpose                                                                                                                                                         |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `public/audio/*.mp3`              | The 10 renamed voice clips.                                                                                                                                     |
+| `.env.example`                    | Documented defaults — copy of the env block from `docs/audio-map.md` → Configuration.                                                                           |
+| `src/audio-config.ts`             | Pure module: parses `import.meta.env.VITE_AUDIO_*` into a typed `AudioConfig`, with fallbacks. Never throws.                                                    |
+| `src/audio-mood.ts`               | Pure module: `deriveMood(state, ctx) → Mood`. No DOM, no Web Audio. Fully unit-testable.                                                                        |
+| `src/audio-pick.ts`               | Pure module: weighted pick over the mood matrix + chain decision. Takes `random: () => number` for determinism.                                                 |
+| `src/audio.ts`                    | `AudioSystem` class. Owns the `AudioContext`, decoded buffers, ambient tick, mute toggle, and the `window.__aquarium.audio` test hook.                          |
+| `tests/unit/audio-config.test.ts` | Env parsing edge cases (missing, malformed, comma-separated lists).                                                                                             |
+| `tests/unit/audio-mood.test.ts`   | Every mood transition (newborn, healthy, declining, critical, freakingOut, recovered, dyingHappy, dyingDefeated), boundary values (`health=0.4`, `health=0.7`). |
+| `tests/unit/audio-pick.test.ts`   | Weighted pick respects the matrix, never picks weight-0 entries, excludes the last-played id, chain probabilities behave as specified.                          |
 
 ### Modified files
 
-| Path                            | Change                                                                                            |
-| ------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `src/main.ts`                   | Instantiate `AudioSystem`, call `audio.bind(world)`. Wire the mute toggle button. Extend `window.__aquarium` to include `audio`. |
-| `index.html`                    | Add `<button id="btn-mute">` next to `#counter`. Label reflects state (e.g., 🔇 / 🔊).             |
-| `.gitignore`                    | Append `.env`, `.env.local`.                                                                      |
-| `vitest.config.ts`              | Extend the coverage `exclude` list to drop `src/audio.ts` (Web Audio bound, like the Renderer). The pure helpers (`audio-mood.ts`, `audio-pick.ts`, `audio-config.ts`) stay in coverage. |
-| `tests/e2e/aquarium.spec.ts`    | Add scenarios: "mute toggle starts on by default", "toggle flips the state on click", "`window.__aquarium.audio` exposes the documented hook surface". |
-| `CLAUDE.md`                     | Replace the "Audio system (planned, not yet wired)" section with an implemented-state version pointing to the new files. Add audio hooks to the test contract table. |
+| Path                         | Change                                                                                                                                                                                   |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/main.ts`                | Instantiate `AudioSystem`, call `audio.bind(world)`. Wire the mute toggle button. Extend `window.__aquarium` to include `audio`.                                                         |
+| `index.html`                 | Add `<button id="btn-mute">` next to `#counter`. Label reflects state (e.g., 🔇 / 🔊).                                                                                                   |
+| `.gitignore`                 | Append `.env`, `.env.local`.                                                                                                                                                             |
+| `vitest.config.ts`           | Extend the coverage `exclude` list to drop `src/audio.ts` (Web Audio bound, like the Renderer). The pure helpers (`audio-mood.ts`, `audio-pick.ts`, `audio-config.ts`) stay in coverage. |
+| `tests/e2e/aquarium.spec.ts` | Add scenarios: "mute toggle starts on by default", "toggle flips the state on click", "`window.__aquarium.audio` exposes the documented hook surface".                                   |
+| `CLAUDE.md`                  | Replace the "Audio system (planned, not yet wired)" section with an implemented-state version pointing to the new files. Add audio hooks to the test contract table.                     |
 
 ---
 
@@ -170,7 +170,7 @@ Don't sneak any of this in. Bring it up as a follow-up:
 ## How to ask for help
 
 If the spec is ambiguous on a specific detail — for example, "should the
-mute button label use an emoji or a word?" — ask in chat *before* picking
+mute button label use an emoji or a word?" — ask in chat _before_ picking
 and shipping. The audio map's "Resolved decisions" table is final; anything
 outside it is fair game to clarify.
 

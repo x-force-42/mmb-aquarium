@@ -5,6 +5,10 @@ test-results
 playwright-report
 .vite
 *.log
+.eslintcache
+
+# Husky internals (regenerated on `npm install` via the prepare script).
+.husky/_/
 
 # Per-developer Vite env files. Only `.env.example` ships in git.
 .env

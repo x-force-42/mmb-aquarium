@@ -43,23 +43,23 @@ guessing**.
 
 ### New files
 
-| Path                              | Purpose                                                                                  |
-| --------------------------------- | ---------------------------------------------------------------------------------------- |
-| `eslint.config.js`                | ESLint **flat config** (ESLint 9+). No `.eslintrc.*`.                                    |
-| `.prettierrc.json`                | Prettier rules. Minimal — `singleQuote: true`, `trailingComma: 'all'`, `printWidth: 100`. |
-| `.prettierignore`                 | Excludes `dist/`, `coverage/`, `test-results/`, `playwright-report/`, `node_modules/`, `public/audio/` (binary). |
-| `.editorconfig`                   | LF line endings, UTF-8, 2-space indent, final newline.                                   |
-| `commitlint.config.js`            | Extends `@commitlint/config-conventional`. **No scope enumeration** (free-form scopes).  |
-| `.husky/pre-commit`               | Runs `npx --no -- lint-staged`.                                                          |
-| `.husky/commit-msg`               | Runs `npx --no -- commitlint --edit "$1"`.                                               |
+| Path                   | Purpose                                                                                                          |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `eslint.config.js`     | ESLint **flat config** (ESLint 9+). No `.eslintrc.*`.                                                            |
+| `.prettierrc.json`     | Prettier rules. Minimal — `singleQuote: true`, `trailingComma: 'all'`, `printWidth: 100`.                        |
+| `.prettierignore`      | Excludes `dist/`, `coverage/`, `test-results/`, `playwright-report/`, `node_modules/`, `public/audio/` (binary). |
+| `.editorconfig`        | LF line endings, UTF-8, 2-space indent, final newline.                                                           |
+| `commitlint.config.js` | Extends `@commitlint/config-conventional`. **No scope enumeration** (free-form scopes).                          |
+| `.husky/pre-commit`    | Runs `npx --no -- lint-staged`.                                                                                  |
+| `.husky/commit-msg`    | Runs `npx --no -- commitlint --edit "$1"`.                                                                       |
 
 ### Modified files
 
-| Path                              | Change                                                                                                                  |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `package.json`                    | Add new `devDependencies` (list below). Add scripts: `lint`, `lint:fix`, `format`, `format:check`, `prepare` (for husky). Add `lint-staged` config block. |
-| `.gitignore`                      | Append `.eslintcache` and (if needed) `.husky/_`. Keep existing entries.                                                |
-| `CLAUDE.md`                       | Add a "Tooling guardrails" section pointing to `docs/guardrails-survey.md` and listing the new scripts. Add the new `Sensor → Action` rows from the survey to the conventions / pitfalls area. |
+| Path           | Change                                                                                                                                                                                         |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `package.json` | Add new `devDependencies` (list below). Add scripts: `lint`, `lint:fix`, `format`, `format:check`, `prepare` (for husky). Add `lint-staged` config block.                                      |
+| `.gitignore`   | Append `.eslintcache` and (if needed) `.husky/_`. Keep existing entries.                                                                                                                       |
+| `CLAUDE.md`    | Add a "Tooling guardrails" section pointing to `docs/guardrails-survey.md` and listing the new scripts. Add the new `Sensor → Action` rows from the survey to the conventions / pitfalls area. |
 
 ### `npm install -D` block
 
@@ -98,8 +98,8 @@ file's style.
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
-  }
+    "prepare": "husky",
+  },
 }
 ```
 
@@ -113,8 +113,8 @@ Also extend the existing `check`-style flow if there is one (the project has
 {
   "lint-staged": {
     "*.{ts,tsx,js,mjs,cjs}": ["eslint --fix", "prettier --write"],
-    "*.{md,json,yml,yaml,html,css}": ["prettier --write"]
-  }
+    "*.{md,json,yml,yaml,html,css}": ["prettier --write"],
+  },
 }
 ```
 
@@ -126,8 +126,8 @@ You decide the exact syntax — use current ESLint 9 idioms. The key points:
 
 - Compose from `@eslint/js`, `typescript-eslint`'s `recommendedTypeChecked`,
   and the plugin recommendations for `import`, `promise`, `sonarjs`.
-- Apply `eslint-plugin-vitest` rules **only to `tests/unit/**`**.
-- Apply `eslint-plugin-playwright` rules **only to `tests/e2e/**`**.
+- Apply `eslint-plugin-vitest` rules **only to `tests/unit/**`\*\*.
+- Apply `eslint-plugin-playwright` rules **only to `tests/e2e/**`\*\*.
 - `eslint-config-prettier` **must be the last** entry so it disables formatting
   rules that would conflict with Prettier.
 - `parserOptions.project` must point to the existing `tsconfig.json` so the
@@ -175,18 +175,18 @@ Every item below must be true at the end. Verify in order.
 - [ ] `npm run test:unit` exits 0 (unchanged from before).
 - [ ] `npm run test:e2e` exits 0 (unchanged from before).
 - [ ] Manual smoke #1 — bad commit message rejected:
-   ```
-   git commit --allow-empty -m "i just wanted to test"
-   ```
-   Should fail with a commitlint error.
+  ```
+  git commit --allow-empty -m "i just wanted to test"
+  ```
+  Should fail with a commitlint error.
 - [ ] Manual smoke #2 — good commit message accepted:
-   ```
-   git commit --allow-empty -m "test: verify commit-msg hook"
-   ```
-   Should pass. (Don't keep this commit — `git reset --hard HEAD~1` after.)
+  ```
+  git commit --allow-empty -m "test: verify commit-msg hook"
+  ```
+  Should pass. (Don't keep this commit — `git reset --hard HEAD~1` after.)
 - [ ] Manual smoke #3 — pre-commit auto-fixes formatting:
-   Edit a `.ts` file to add a misformatted line, `git add` it, `git commit`,
-   verify the staged content was reformatted before the commit landed.
+      Edit a `.ts` file to add a misformatted line, `git add` it, `git commit`,
+      verify the staged content was reformatted before the commit landed.
 
 If any acceptance criterion needs source modifications to satisfy (e.g.,
 existing source produces lint errors), apply the **fix the cause** rule from

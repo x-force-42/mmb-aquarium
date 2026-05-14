@@ -6,9 +6,17 @@ import type { WorldEvents } from '../../src/types';
  * Spy on every World event so tests can assert on the full event tape.
  * Returns an object with the mocks plus a `dispose` to detach them.
  */
-function attachSpies(w: World): { spies: { [K in keyof WorldEvents]: ReturnType<typeof vi.fn> }, dispose: () => void } {
+function attachSpies(w: World): {
+  spies: { [K in keyof WorldEvents]: ReturnType<typeof vi.fn> };
+  dispose: () => void;
+} {
   const names: Array<keyof WorldEvents> = [
-    'onBorn', 'onStateChange', 'onDiedHappy', 'onDiedDefeated', 'onFreakingOut', 'onRecovered',
+    'onBorn',
+    'onStateChange',
+    'onDiedHappy',
+    'onDiedDefeated',
+    'onFreakingOut',
+    'onRecovered',
   ];
   const spies = {} as { [K in keyof WorldEvents]: ReturnType<typeof vi.fn> };
   const offs: Array<() => void> = [];
@@ -22,23 +30,43 @@ function attachSpies(w: World): { spies: { [K in keyof WorldEvents]: ReturnType<
 
 describe('World', () => {
   let world: World;
-  beforeEach(() => { world = new World(); });
+  beforeEach(() => {
+    world = new World();
+  });
 
   describe('born', () => {
     it('creates a Meeseeks at full health and emits onBorn', () => {
       const { spies } = attachSpies(world);
       world.handleMessage({ type: 'event', id: 'a', kind: 'born', name: 'Bob', task: 'jar' });
       expect(world.size()).toBe(1);
-      expect(world.get('a')).toEqual({ id: 'a', health: 1, isFreakingOut: false, name: 'Bob', task: 'jar' });
+      expect(world.get('a')).toEqual({
+        id: 'a',
+        health: 1,
+        isFreakingOut: false,
+        name: 'Bob',
+        task: 'jar',
+      });
       expect(spies.onBorn).toHaveBeenCalledTimes(1);
       expect(spies.onBorn).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'a', health: 1, isFreakingOut: false, name: 'Bob', task: 'jar' }),
+        expect.objectContaining({
+          id: 'a',
+          health: 1,
+          isFreakingOut: false,
+          name: 'Bob',
+          task: 'jar',
+        }),
       );
     });
 
     it('coerces missing name/task to null', () => {
       world.handleMessage({ type: 'event', id: 'b', kind: 'born' });
-      expect(world.get('b')).toEqual({ id: 'b', health: 1, isFreakingOut: false, name: null, task: null });
+      expect(world.get('b')).toEqual({
+        id: 'b',
+        health: 1,
+        isFreakingOut: false,
+        name: null,
+        task: null,
+      });
     });
 
     it('ignores duplicate born for an existing id', () => {
@@ -154,15 +182,24 @@ describe('World', () => {
       const { spies } = attachSpies(world);
       world.handleMessage({
         type: 'snapshot',
-        meeseeks: [
-          { id: 'x', health: 0.7, isFreakingOut: true, name: 'X' },
-          { id: 'y' },
-        ],
+        meeseeks: [{ id: 'x', health: 0.7, isFreakingOut: true, name: 'X' }, { id: 'y' }],
       });
       expect(spies.onBorn).toHaveBeenCalledTimes(2);
       expect(world.size()).toBe(2);
-      expect(world.get('x')).toEqual({ id: 'x', health: 0.7, isFreakingOut: true, name: 'X', task: null });
-      expect(world.get('y')).toEqual({ id: 'y', health: 1, isFreakingOut: false, name: null, task: null });
+      expect(world.get('x')).toEqual({
+        id: 'x',
+        health: 0.7,
+        isFreakingOut: true,
+        name: 'X',
+        task: null,
+      });
+      expect(world.get('y')).toEqual({
+        id: 'y',
+        health: 1,
+        isFreakingOut: false,
+        name: null,
+        task: null,
+      });
     });
 
     it('clamps health in snapshot entries', () => {

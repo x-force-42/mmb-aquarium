@@ -59,11 +59,13 @@ describe('validatePrefs', () => {
   });
 
   it('returns only the valid subset when some fields are bad', () => {
-    expect(validatePrefs({
-      ambientEnabled: true,
-      masterVolume: 0.5,
-      ambientVolume: 9999,
-    })).toEqual({
+    expect(
+      validatePrefs({
+        ambientEnabled: true,
+        masterVolume: 0.5,
+        ambientVolume: 9999,
+      }),
+    ).toEqual({
       ambientEnabled: true,
       masterVolume: 0.5,
     });

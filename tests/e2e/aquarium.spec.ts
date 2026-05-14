@@ -91,10 +91,14 @@ test.describe('Mr. Meeseeks Aquarium', () => {
     await page.evaluate(() => window.__aquarium!.sim.born());
 
     await page.locator('#btn-freaking-out').click();
-    await expect.poll(() => page.evaluate(() => window.__aquarium!.world.getFreakingOut().length)).toBe(1);
+    await expect
+      .poll(() => page.evaluate(() => window.__aquarium!.world.getFreakingOut().length))
+      .toBe(1);
 
     await page.locator('#btn-recovered').click();
-    await expect.poll(() => page.evaluate(() => window.__aquarium!.world.getFreakingOut().length)).toBe(0);
+    await expect
+      .poll(() => page.evaluate(() => window.__aquarium!.world.getFreakingOut().length))
+      .toBe(0);
   });
 
   test('Decai saúde drops every Meeseeks health by ~0.1', async ({ page }) => {
@@ -107,7 +111,9 @@ test.describe('Mr. Meeseeks Aquarium', () => {
 
     await page.locator('#btn-decay').click();
 
-    const healths = await page.evaluate(() => window.__aquarium!.world.getAll().map((m) => m.health));
+    const healths = await page.evaluate(() =>
+      window.__aquarium!.world.getAll().map((m) => m.health),
+    );
     for (const h of healths) {
       expect(h).toBeGreaterThanOrEqual(0.89);
       expect(h).toBeLessThanOrEqual(0.91);
@@ -122,7 +128,9 @@ test.describe('Mr. Meeseeks Aquarium', () => {
     for (let i = 0; i < 15; i++) {
       await page.evaluate(() => window.__aquarium!.sim.decayAll());
     }
-    const min = await page.evaluate(() => Math.min(...window.__aquarium!.world.getAll().map((m) => m.health)));
+    const min = await page.evaluate(() =>
+      Math.min(...window.__aquarium!.world.getAll().map((m) => m.health)),
+    );
     expect(min).toBe(0);
   });
 
@@ -232,7 +240,10 @@ test.describe('Mr. Meeseeks Aquarium', () => {
       await page.goto('/');
       await waitForBoot(page);
 
-      expect(await page.evaluate(() => window.__aquarium!.audio.getAmbientVolume())).toBeCloseTo(0.4, 5);
+      expect(await page.evaluate(() => window.__aquarium!.audio.getAmbientVolume())).toBeCloseTo(
+        0.4,
+        5,
+      );
       await page.locator('#btn-audio-panel').click();
       await page.locator('#rng-ambient').fill('10');
       await page.locator('#rng-ambient').dispatchEvent('input');

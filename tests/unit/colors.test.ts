@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  COLOR_DECAYED,
-  COLOR_HEALTHY,
-  healthColor,
-  lerp,
-  lerpColor,
-} from '../../src/colors';
+import { COLOR_DECAYED, COLOR_HEALTHY, healthColor, lerp, lerpColor } from '../../src/colors';
 
 describe('lerp', () => {
   it('returns endpoints at t=0 and t=1', () => {

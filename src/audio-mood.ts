@@ -27,7 +27,7 @@ export type AliveMood = Exclude<Mood, 'dyingHappy' | 'dyingDefeated'>;
 
 /** Inputs `deriveMood` needs. Times are in ms; matches `performance.now()`. */
 export interface MoodInput {
-  readonly health: number;          // 0..1
+  readonly health: number; // 0..1
   readonly isFreakingOut: boolean;
   readonly nowMs: number;
   readonly bornAtMs: number;

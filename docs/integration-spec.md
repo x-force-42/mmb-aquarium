@@ -71,14 +71,14 @@ else." Used at connect time and whenever the producer needs to resync.
 
 Field by field:
 
-| Field            | Type                | Required | Notes                                                              |
-| ---------------- | ------------------- | :------: | ------------------------------------------------------------------ |
-| `meeseeks`       | array of entries    | yes      | May be empty (`[]`) — that's a valid "nothing is alive" snapshot.   |
-| `id`             | string              | yes      | Stable per work unit. Should be **unique** across the producer.    |
-| `health`         | number `[0, 1]`     | no       | Defaults to `1`. Clamped on receipt — out-of-range values get pinned to `[0, 1]`. |
-| `isFreakingOut`  | boolean             | no       | Defaults to `false`.                                               |
-| `name`           | string              | no       | Friendly label shown briefly above the sprite at birth.            |
-| `task`           | string              | no       | Friendly description of what the unit is doing. Currently surfaced only on hover/inspection. |
+| Field           | Type             | Required | Notes                                                                                        |
+| --------------- | ---------------- | :------: | -------------------------------------------------------------------------------------------- |
+| `meeseeks`      | array of entries |   yes    | May be empty (`[]`) — that's a valid "nothing is alive" snapshot.                            |
+| `id`            | string           |   yes    | Stable per work unit. Should be **unique** across the producer.                              |
+| `health`        | number `[0, 1]`  |    no    | Defaults to `1`. Clamped on receipt — out-of-range values get pinned to `[0, 1]`.            |
+| `isFreakingOut` | boolean          |    no    | Defaults to `false`.                                                                         |
+| `name`          | string           |    no    | Friendly label shown briefly above the sprite at birth.                                      |
+| `task`          | string           |    no    | Friendly description of what the unit is doing. Currently surfaced only on hover/inspection. |
 
 ### 2. `state` — continuous health update
 
@@ -89,10 +89,10 @@ not a delta. The aquarium will animate the color transition from old to new.
 { "type": "state", "id": "task-42", "health": 0.74 }
 ```
 
-| Field    | Type            | Required | Notes                                  |
-| -------- | --------------- | :------: | -------------------------------------- |
-| `id`     | string          | yes      | Must match an existing Meeseeks.       |
-| `health` | number `[0, 1]` | yes      | Absolute new value. Clamped on receipt.|
+| Field    | Type            | Required | Notes                                   |
+| -------- | --------------- | :------: | --------------------------------------- |
+| `id`     | string          |   yes    | Must match an existing Meeseeks.        |
+| `health` | number `[0, 1]` |   yes    | Absolute new value. Clamped on receipt. |
 
 Unknown `id` → silently dropped (the aquarium logs a warning; the producer
 is expected to be the source of truth, so we don't ask). Same-value updates
@@ -104,25 +104,31 @@ Tells the aquarium "something discrete happened to this unit." Triggers a
 specific animation (and a voice clip, see the audio system).
 
 ```json
-{ "type": "event", "id": "task-42", "kind": "born", "name": "Mr. Meeseeks", "task": "rebalance shard 7" }
+{
+  "type": "event",
+  "id": "task-42",
+  "kind": "born",
+  "name": "Mr. Meeseeks",
+  "task": "rebalance shard 7"
+}
 ```
 
-| Field    | Type     | Required | Notes                                              |
-| -------- | -------- | :------: | -------------------------------------------------- |
-| `id`     | string   | yes      | The work unit this event applies to.               |
-| `kind`   | enum     | yes      | One of `born`, `died_happy`, `died_defeated`, `freaking_out`, `recovered`. |
-| `name`   | string   | no       | Only used on `born`. Sets the floating-name label. |
-| `task`   | string   | no       | Only used on `born`. Sets the task hover label.    |
+| Field  | Type   | Required | Notes                                                                      |
+| ------ | ------ | :------: | -------------------------------------------------------------------------- |
+| `id`   | string |   yes    | The work unit this event applies to.                                       |
+| `kind` | enum   |   yes    | One of `born`, `died_happy`, `died_defeated`, `freaking_out`, `recovered`. |
+| `name` | string |    no    | Only used on `born`. Sets the floating-name label.                         |
+| `task` | string |    no    | Only used on `born`. Sets the task hover label.                            |
 
 Semantic of each `kind`:
 
-| `kind`            | Meaning                                                                                              |
-| ----------------- | ---------------------------------------------------------------------------------------------------- |
-| `born`            | A new unit just started. Aquarium spawns a new sprite at full health.                                |
-| `died_happy`      | Unit completed its work successfully. Sprite plays the celebratory death animation and disappears.   |
-| `died_defeated`   | Unit failed / was given up on. Sprite plays the somber death animation and disappears.               |
-| `freaking_out`    | Unit entered an error/crisis state. Sprite starts pulsing red, shaking, and (later) wailing.         |
-| `recovered`       | Unit exited the freak-out state. Sprite calms down. The unit stays alive.                            |
+| `kind`          | Meaning                                                                                            |
+| --------------- | -------------------------------------------------------------------------------------------------- |
+| `born`          | A new unit just started. Aquarium spawns a new sprite at full health.                              |
+| `died_happy`    | Unit completed its work successfully. Sprite plays the celebratory death animation and disappears. |
+| `died_defeated` | Unit failed / was given up on. Sprite plays the somber death animation and disappears.             |
+| `freaking_out`  | Unit entered an error/crisis state. Sprite starts pulsing red, shaking, and (later) wailing.       |
+| `recovered`     | Unit exited the freak-out state. Sprite calms down. The unit stays alive.                          |
 
 The aquarium tracks `isFreakingOut` as a flag separate from `health` — a
 unit can be at 90 % health and still freaking out, or at 5 % health and
@@ -135,18 +141,18 @@ calm.
 These are the guarantees the aquarium expects from the producer side, and
 what the producer can expect from the aquarium.
 
-| Topic                       | Contract                                                                                                                                       |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Ordering**                | Messages **for the same `id`** must arrive in causal order. Across IDs, ordering is irrelevant.                                                 |
-| **Idempotency (born)**      | Duplicate `born` for an already-alive `id` is **silently dropped**. Don't worry about replays.                                                 |
-| **Idempotency (state)**     | `state` with health equal to the current value is a **no-op**. Same is true if it lands before any `born` for that id (dropped).               |
-| **Idempotency (freak)**     | `freaking_out` for an already-freaking unit is **dropped**. Same for `recovered` on a non-freaking unit.                                       |
-| **Unknown id**              | Any `state` or `event` for an `id` the aquarium has never heard of is silently dropped.                                                        |
-| **`snapshot` is a reset**   | When a `snapshot` arrives, the aquarium **wipes** its current state and re-emits births for each entry. Use this for resync, never as a delta. |
-| **Connect resync**          | The producer **should** send a `snapshot` as the first message on every new connection. Without it, the aquarium starts empty until events flow. |
+| Topic                       | Contract                                                                                                                                              |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Ordering**                | Messages **for the same `id`** must arrive in causal order. Across IDs, ordering is irrelevant.                                                       |
+| **Idempotency (born)**      | Duplicate `born` for an already-alive `id` is **silently dropped**. Don't worry about replays.                                                        |
+| **Idempotency (state)**     | `state` with health equal to the current value is a **no-op**. Same is true if it lands before any `born` for that id (dropped).                      |
+| **Idempotency (freak)**     | `freaking_out` for an already-freaking unit is **dropped**. Same for `recovered` on a non-freaking unit.                                              |
+| **Unknown id**              | Any `state` or `event` for an `id` the aquarium has never heard of is silently dropped.                                                               |
+| **`snapshot` is a reset**   | When a `snapshot` arrives, the aquarium **wipes** its current state and re-emits births for each entry. Use this for resync, never as a delta.        |
+| **Connect resync**          | The producer **should** send a `snapshot` as the first message on every new connection. Without it, the aquarium starts empty until events flow.      |
 | **Backpressure**            | The aquarium can absorb ~1000 messages/sec without dropping. Beyond that, message frames may be deferred a frame (16 ms) but not dropped on our side. |
-| **Buffering on disconnect** | The aquarium does **not** buffer producer-side. If you disconnect mid-burst, send a `snapshot` on reconnect rather than replaying events.       |
-| **Client → server**         | None in v1. The aquarium is read-only. Future: maybe a "request snapshot" frame from the client. Not now.                                      |
+| **Buffering on disconnect** | The aquarium does **not** buffer producer-side. If you disconnect mid-burst, send a `snapshot` on reconnect rather than replaying events.             |
+| **Client → server**         | None in v1. The aquarium is read-only. Future: maybe a "request snapshot" frame from the client. Not now.                                             |
 
 ---
 

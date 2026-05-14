@@ -43,7 +43,6 @@ abstract class TransportBase implements Transport {
       try {
         cb(msg);
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error('Transport handler threw:', err);
       }
     }
@@ -155,12 +154,12 @@ export class SimulatorTransport extends TransportBase {
       if (!el) throw new Error(`SimulatorTransport: missing button #${elementId}`);
       el.addEventListener('click', handler);
     };
-    wire(ids.born,         () => this.born());
-    wire(ids.diedHappy,    () => this.killHappy());
+    wire(ids.born, () => this.born());
+    wire(ids.diedHappy, () => this.killHappy());
     wire(ids.diedDefeated, () => this.giveUp());
-    wire(ids.freakingOut,  () => this.triggerFreakOut());
-    wire(ids.recovered,    () => this.recover());
-    wire(ids.decay,        () => this.decayAll());
+    wire(ids.freakingOut, () => this.triggerFreakOut());
+    wire(ids.recovered, () => this.recover());
+    wire(ids.decay, () => this.decayAll());
   }
 
   // ----- Internals -----
@@ -204,11 +203,9 @@ export class WebSocketTransport extends TransportBase {
         if (isAppMessage(parsed)) {
           this.emit(parsed);
         } else {
-          // eslint-disable-next-line no-console
           console.warn('WebSocketTransport: invalid message shape', parsed);
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.warn('WebSocketTransport: bad JSON payload', err);
       }
     });

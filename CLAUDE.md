@@ -66,6 +66,16 @@ tests/
     audio-config.test.ts, audio-mood.test.ts, audio-pick.test.ts, audio-prefs.test.ts
   e2e/
     aquarium.spec.ts  ── Playwright; runs against `vite preview`
+
+guardrail configs (root):
+  eslint.config.js         ── flat-config ESLint (typescript-eslint, import,
+                              promise, sonarjs, vitest, playwright, prettier)
+  .prettierrc.json         ── formatter rules
+  .prettierignore          ── excludes built / generated / binary dirs
+  .editorconfig            ── tab / EOL / charset baseline for any editor
+  commitlint.config.js     ── extends @commitlint/config-conventional
+  .husky/pre-commit        ── `npx --no -- lint-staged`
+  .husky/commit-msg        ── `npx --no -- commitlint --edit "$1"`
 ```
 
 Coverage strategy: unit tests cover the testable cores (world, transport, emitter, colors,
@@ -78,9 +88,13 @@ verified by the e2e suite instead.
 ## Quick commands
 
 ```
-npm install              ── one-time
+npm install              ── one-time (also installs husky hooks via `prepare`)
 npm run dev              ── Vite dev server on :5173
 npm run typecheck        ── tsc --noEmit, strict
+npm run lint             ── ESLint over the whole tree
+npm run lint:fix         ── ESLint --fix
+npm run format           ── Prettier --write
+npm run format:check     ── Prettier --check (CI-safe)
 npm run test:unit        ── Vitest
 npm run test:unit:watch  ── Vitest in watch mode
 npm run test:e2e         ── Playwright (auto-installs chromium on first run)
@@ -99,10 +113,52 @@ npm run preview          ── serve dist/ on :4173 (what Playwright hits)
 Or use the slash commands:
 
 ```
-/check   run typecheck + unit + e2e and report
+/check   run typecheck + lint + format:check + unit + e2e and report
 /dev     start the dev server
 /add-event-kind <name>   recipe to add a new EventKind end-to-end
 ```
+
+---
+
+## Tooling guardrails
+
+The repo runs an opinionated guardrail stack so agent-authored code stays
+honest. The rationale and the full toolkit survey live in
+[`docs/guardrails-survey.md`](./docs/guardrails-survey.md); the implementation
+plan for step 1 (lint / format / git hooks) is in
+[`docs/prompts/guardrails-step-1.md`](./docs/prompts/guardrails-step-1.md).
+
+What's wired right now:
+
+| Stage                | Sensor                                                                                      | Where it lives                      |
+| -------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------- |
+| author / on-save     | TypeScript strict + ESLint (typescript-eslint, import, promise, sonarjs)                    | `tsconfig.json`, `eslint.config.js` |
+| author / on-save     | Prettier                                                                                    | `.prettierrc.json`                  |
+| pre-commit (`husky`) | `lint-staged` → ESLint --fix + Prettier on staged files                                     | `.husky/pre-commit`                 |
+| commit-msg (`husky`) | `commitlint` against Conventional Commits                                                   | `.husky/commit-msg`                 |
+| author (suite-only)  | `eslint-plugin-vitest` (in `tests/unit/**`), `eslint-plugin-playwright` (in `tests/e2e/**`) | `eslint.config.js`                  |
+
+Escape hatches exist (`HUSKY=0`, `--no-verify`) for emergencies. **Use them
+sparingly and explain why in the commit body** — they bypass the sensors,
+not the rules behind them. Step 2 of the rollout will add structural sensors
+(`dependency-cruiser` to enforce layering, `knip` for unused exports/files).
+
+### Sensor → Agent action (active sensors)
+
+The full matrix is in `docs/guardrails-survey.md`. The rows below are the
+sensors that fire today; do **not** treat any of them as advisory.
+
+| Sensor                                                   | Severity | What you must do                                                                                                                                               |
+| -------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tsc --noEmit` error                                     | hard     | Fix the type. **Never widen `tsconfig.json` or sprinkle `any`.** Narrow with a tight `as` cast + a `// reason:` comment if a third-party type is wrong.        |
+| ESLint error                                             | hard     | Read the rule docs, then fix the cause. Only `// eslint-disable-next-line <rule> -- reason: …` on the offending line, and only if the rule really doesn't fit. |
+| ESLint warning                                           | soft     | Fix or suppress in the same commit; mention any suppression in the commit body.                                                                                |
+| Prettier diff (`format:check` failure)                   | hard     | Run `npm run format`. Never hand-format. If Prettier's choice feels wrong, fix `.prettierrc.json`, not the code.                                               |
+| `sonarjs/cognitive-complexity`                           | hard     | Extract a helper. **Don't bump the threshold to silence it.**                                                                                                  |
+| `sonarjs/no-duplicate-string` / `no-identical-functions` | soft     | Extract to a constant or shared util. If the duplication is intentional (e.g. two fixtures), suppress with a `// reason:` comment.                             |
+| commitlint failure                                       | hard     | Reword the commit message to match Conventional Commits (`type(scope): subject`). Scopes are free-form for now.                                                |
+| Unit test failure                                        | hard     | Fix the behavior. **Never relax the assertion** unless the assertion itself was the bug — and justify it in the commit body.                                   |
+| E2E test failure                                         | hard     | Read the trace. First check the `window.__aquarium` hook; then the renderer; then the world. **Don't increase a `timeout` to make red go green.**              |
 
 ---
 
@@ -116,22 +172,22 @@ window.__aquarium = { world, renderer, sim, audio };
 
 E2E tests rely on this. Treat it as part of the public API.
 
-| Surface                          | Used by                       |
-| -------------------------------- | ----------------------------- |
-| `world.size()`                   | counter assertions            |
-| `world.getAll()` / `getAlive()`  | health, name, task probes     |
-| `world.getFreakingOut()`         | round-trip freak/recover      |
-| `world.get(id)`                  | id-specific assertions        |
-| `renderer.spriteCount()`         | render parity                 |
-| `renderer.hasSprite(id)`         | render parity                 |
-| `renderer.spritePanX(id)`        | normalised x-pan for audio    |
-| `sim.born()`, `sim.killHappy()`, `sim.giveUp()`, `sim.triggerFreakOut()`, `sim.recover()`, `sim.decayAll(amount?)` | scenario setup |
-| `audio.setMuted(value)` / `audio.isMuted()` | mute toggle probes     |
-| `audio.setAmbientEnabled(v)` / `audio.isAmbientEnabled()` | ambient (ruídos) toggle |
-| `audio.setMasterVolume(v)` / `audio.getMasterVolume()` | master gain, clamp [0, 1] |
-| `audio.setAmbientVolume(v)` / `audio.getAmbientVolume()` | ambient-bus gain, clamp [0, 1] |
-| `audio.getLastPlayed(id)`        | per-Meeseeks last clip (camelCase id, or `null`) |
-| `audio.forceTick()`              | run an ambient consideration immediately (no-op while muted or ambient-off) |
+| Surface                                                                                                            | Used by                                                                     |
+| ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `world.size()`                                                                                                     | counter assertions                                                          |
+| `world.getAll()` / `getAlive()`                                                                                    | health, name, task probes                                                   |
+| `world.getFreakingOut()`                                                                                           | round-trip freak/recover                                                    |
+| `world.get(id)`                                                                                                    | id-specific assertions                                                      |
+| `renderer.spriteCount()`                                                                                           | render parity                                                               |
+| `renderer.hasSprite(id)`                                                                                           | render parity                                                               |
+| `renderer.spritePanX(id)`                                                                                          | normalised x-pan for audio                                                  |
+| `sim.born()`, `sim.killHappy()`, `sim.giveUp()`, `sim.triggerFreakOut()`, `sim.recover()`, `sim.decayAll(amount?)` | scenario setup                                                              |
+| `audio.setMuted(value)` / `audio.isMuted()`                                                                        | mute toggle probes                                                          |
+| `audio.setAmbientEnabled(v)` / `audio.isAmbientEnabled()`                                                          | ambient (ruídos) toggle                                                     |
+| `audio.setMasterVolume(v)` / `audio.getMasterVolume()`                                                             | master gain, clamp [0, 1]                                                   |
+| `audio.setAmbientVolume(v)` / `audio.getAmbientVolume()`                                                           | ambient-bus gain, clamp [0, 1]                                              |
+| `audio.getLastPlayed(id)`                                                                                          | per-Meeseeks last clip (camelCase id, or `null`)                            |
+| `audio.forceTick()`                                                                                                | run an ambient consideration immediately (no-op while muted or ambient-off) |
 
 **Rule:** never remove or rename a member of this surface without updating
 `tests/e2e/aquarium.spec.ts` in the same change.
@@ -271,7 +327,7 @@ ambient volume never silence them. State persists under
 
 ## Known issues / non-goals
 
-- **Some unit/e2e tests may currently be failing.** Triage with `npm run test:unit` and `npm run test:e2e`, then fix the *behavior* — do not relax the assertion to make red go green.
+- **Some unit/e2e tests may currently be failing.** Triage with `npm run test:unit` and `npm run test:e2e`, then fix the _behavior_ — do not relax the assertion to make red go green.
 - **Animation behaviors are e2e-tested, not unit-tested.** Don't try to mock Pixi for animation. The ROI is bad.
 - **No bundler-free build.** We deliberately adopted Vite when we moved to TypeScript. `index.html` no longer loads from a CDN.
 
@@ -284,6 +340,9 @@ ambient volume never silence them. State persists under
 3. Editing `dist/` instead of `src/`. `dist/` is a build artifact and is gitignored.
 4. Asserting on a sprite's existence right after a death event. The world removes it immediately, but the sprite plays its death animation for ~1.5s before the renderer reaps it. Assert against `world.size()` for state, against `renderer.spriteCount()` for visuals.
 5. Adding `undefined` to an optional field. TS strict (`exactOptionalPropertyTypes`) will reject it. **Omit the key.**
+6. Bypassing the pre-commit hook with `--no-verify` / `HUSKY=0` because lint-staged "isn't doing anything useful." It is — it auto-fixes formatting on staged files. If a real check is in the way, fix the cause, don't skip the hook.
+7. Hand-formatting code so it "looks nicer" than Prettier's output. Prettier wins; if its choice is wrong, the fix is in `.prettierrc.json`, not the source.
+8. Writing a commit message like "wip" or "fix bug" — commitlint will reject it. Use `type(scope): subject` (Conventional Commits). Scopes are free-form for now.
 
 ---
 

@@ -56,18 +56,39 @@ describe('deriveMood', () => {
     });
 
     it('newborn lock wins over freakingOut and health', () => {
-      expect(deriveMood(input({
-        nowMs: 100, bornAtMs: 0, isFreakingOut: true, health: 0.1,
-      }))).toBe('newborn');
+      expect(
+        deriveMood(
+          input({
+            nowMs: 100,
+            bornAtMs: 0,
+            isFreakingOut: true,
+            health: 0.1,
+          }),
+        ),
+      ).toBe('newborn');
     });
 
     it('respects a custom lock duration via input', () => {
-      expect(deriveMood(input({
-        nowMs: 700, bornAtMs: 0, newbornLockMs: 600, health: 1,
-      }))).toBe('healthy');
-      expect(deriveMood(input({
-        nowMs: 599, bornAtMs: 0, newbornLockMs: 600, health: 0.1,
-      }))).toBe('newborn');
+      expect(
+        deriveMood(
+          input({
+            nowMs: 700,
+            bornAtMs: 0,
+            newbornLockMs: 600,
+            health: 1,
+          }),
+        ),
+      ).toBe('healthy');
+      expect(
+        deriveMood(
+          input({
+            nowMs: 599,
+            bornAtMs: 0,
+            newbornLockMs: 600,
+            health: 0.1,
+          }),
+        ),
+      ).toBe('newborn');
     });
   });
 
@@ -79,38 +100,79 @@ describe('deriveMood', () => {
 
     it('freakingOut wins over recovered lock when both are set (re-entering freak after a recover)', () => {
       // Got recovered 100ms ago, now isFreakingOut is true again → freakingOut.
-      expect(deriveMood(input({
-        isFreakingOut: true, recoveredAtMs: 99_900, nowMs: 100_000, health: 1,
-      }))).toBe('freakingOut');
+      expect(
+        deriveMood(
+          input({
+            isFreakingOut: true,
+            recoveredAtMs: 99_900,
+            nowMs: 100_000,
+            health: 1,
+          }),
+        ),
+      ).toBe('freakingOut');
     });
   });
 
   describe('recovered lock', () => {
     it('within lock window, isFreakingOut=false → recovered', () => {
-      expect(deriveMood(input({
-        isFreakingOut: false, recoveredAtMs: 100_000, nowMs: 100_500, health: 0.2,
-      }))).toBe('recovered');
+      expect(
+        deriveMood(
+          input({
+            isFreakingOut: false,
+            recoveredAtMs: 100_000,
+            nowMs: 100_500,
+            health: 0.2,
+          }),
+        ),
+      ).toBe('recovered');
     });
 
     it('recovered lock wins over critical/declining/healthy', () => {
-      expect(deriveMood(input({
-        isFreakingOut: false, recoveredAtMs: 100_000, nowMs: 100_999, health: 1,
-      }))).toBe('recovered');
-      expect(deriveMood(input({
-        isFreakingOut: false, recoveredAtMs: 100_000, nowMs: 100_999, health: 0,
-      }))).toBe('recovered');
+      expect(
+        deriveMood(
+          input({
+            isFreakingOut: false,
+            recoveredAtMs: 100_000,
+            nowMs: 100_999,
+            health: 1,
+          }),
+        ),
+      ).toBe('recovered');
+      expect(
+        deriveMood(
+          input({
+            isFreakingOut: false,
+            recoveredAtMs: 100_000,
+            nowMs: 100_999,
+            health: 0,
+          }),
+        ),
+      ).toBe('recovered');
     });
 
     it('recovered window expires after recoveredLockMs', () => {
-      expect(deriveMood(input({
-        isFreakingOut: false, recoveredAtMs: 100_000, nowMs: 101_500, health: 1,
-      }))).toBe('healthy');
+      expect(
+        deriveMood(
+          input({
+            isFreakingOut: false,
+            recoveredAtMs: 100_000,
+            nowMs: 101_500,
+            health: 1,
+          }),
+        ),
+      ).toBe('healthy');
     });
 
     it('null recoveredAtMs never enters recovered mood', () => {
-      expect(deriveMood(input({
-        isFreakingOut: false, recoveredAtMs: null, health: 0.2,
-      }))).toBe('critical');
+      expect(
+        deriveMood(
+          input({
+            isFreakingOut: false,
+            recoveredAtMs: null,
+            health: 0.2,
+          }),
+        ),
+      ).toBe('critical');
     });
   });
 });

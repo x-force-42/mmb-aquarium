@@ -34,9 +34,7 @@ function boot(): void {
   const renderer = new Renderer(container);
   renderer.bind(world);
 
-  const audioConfig = parseAudioConfig(
-    import.meta.env as unknown as Record<string, string | undefined>,
-  );
+  const audioConfig = parseAudioConfig(import.meta.env);
   const audio = new AudioSystem(audioConfig, {
     panOf: (id) => renderer.spritePanX(id),
   });

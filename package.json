@@ -9,6 +9,10 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 4173",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:unit:coverage": "vitest run --coverage",
@@ -17,19 +21,43 @@
     "test:e2e:install": "playwright install --with-deps chromium",
     "test:e2e:coverage": "cross-env COVERAGE=1 playwright test",
     "test:coverage": "npm run test:unit:coverage && npm run test:e2e:coverage",
-    "test": "npm run test:unit && npm run test:e2e"
+    "test": "npm run test:unit && npm run test:e2e",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs,cjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{md,json,yml,yaml,html,css}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "pixi.js": "^7.4.2"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
+    "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.45.0",
     "@types/node": "^20.12.0",
     "@vitest/coverage-v8": "^1.6.0",
     "cross-env": "^7.0.3",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-playwright": "^2.10.2",
+    "eslint-plugin-promise": "^7.3.0",
+    "eslint-plugin-sonarjs": "^4.0.3",
+    "eslint-plugin-vitest": "^0.5.4",
     "happy-dom": "^14.10.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.4",
     "monocart-reporter": "^2.9.0",
+    "prettier": "^3.8.3",
     "typescript": "^5.4.0",
+    "typescript-eslint": "^8.59.3",
     "vite": "^5.2.0",
     "vitest": "^1.6.0"
   }

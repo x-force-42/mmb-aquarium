@@ -58,7 +58,10 @@ describe('Emitter', () => {
     const e = new Emitter<Events>();
     const order: string[] = [];
     const second = vi.fn(() => order.push('second'));
-    e.on('ping', () => { order.push('first'); e.off('ping', second); });
+    e.on('ping', () => {
+      order.push('first');
+      e.off('ping', second);
+    });
     e.on('ping', second);
     e.emit('ping', 1);
     // Snapshot dispatch: `second` still runs in this batch even though it
@@ -73,7 +76,9 @@ describe('Emitter', () => {
     const e = new Emitter<Events>();
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const second = vi.fn();
-    e.on('ping', () => { throw new Error('boom'); });
+    e.on('ping', () => {
+      throw new Error('boom');
+    });
     e.on('ping', second);
     e.emit('ping', 1);
     expect(second).toHaveBeenCalled();

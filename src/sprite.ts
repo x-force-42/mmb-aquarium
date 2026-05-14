@@ -116,9 +116,15 @@ export class MeeseeksSprite {
   }
 
   // -------- World event hooks --------
-  onStateChange(m: MeeseeksState): void { this.health = m.health; }
-  onFreakingOut(): void { this.isFreakingOut = true; }
-  onRecovered(): void { this.isFreakingOut = false; }
+  onStateChange(m: MeeseeksState): void {
+    this.health = m.health;
+  }
+  onFreakingOut(): void {
+    this.isFreakingOut = true;
+  }
+  onRecovered(): void {
+    this.isFreakingOut = false;
+  }
 
   startDeath(kind: DeathKind): void {
     this.deathState = kind;
@@ -150,8 +156,8 @@ export class MeeseeksSprite {
 
   private applyBirth(dt: number): void {
     this.birthMs = Math.max(0, this.birthMs - dt);
-    const t = 1 - this.birthMs / BIRTH_MS;        // 0 -> 1
-    const eased = 1 - Math.pow(1 - t, 3);          // cubic-out
+    const t = 1 - this.birthMs / BIRTH_MS; // 0 -> 1
+    const eased = 1 - Math.pow(1 - t, 3); // cubic-out
     this.container.alpha = eased;
     this.container.scale.set(0.4 + 0.6 * eased);
     const offset = this.birthOffsetY * (1 - eased);
@@ -167,9 +173,10 @@ export class MeeseeksSprite {
     const target = this.isFreakingOut ? 1 : 0;
     if (this.freakIntensity !== target) {
       const step = dt / FREAK_RAMP_MS;
-      this.freakIntensity = this.freakIntensity < target
-        ? Math.min(target, this.freakIntensity + step)
-        : Math.max(target, this.freakIntensity - step);
+      this.freakIntensity =
+        this.freakIntensity < target
+          ? Math.min(target, this.freakIntensity + step)
+          : Math.max(target, this.freakIntensity - step);
     }
 
     // Color = base (health) + freak pulse on top.
@@ -182,7 +189,8 @@ export class MeeseeksSprite {
     this.body.tint = tint;
 
     // Position: bob + low-health tremor + freak shake.
-    const bob = Math.sin(time * 0.001 * BOB_FREQ_HZ * Math.PI * 2 + this.phaseOffset) * BOB_AMPLITUDE_PX;
+    const bob =
+      Math.sin(time * 0.001 * BOB_FREQ_HZ * Math.PI * 2 + this.phaseOffset) * BOB_AMPLITUDE_PX;
     let jitterX = 0;
     let jitterY = 0;
     if (this.health < TREMOR_HEALTH_TH) {
