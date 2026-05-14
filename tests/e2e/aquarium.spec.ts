@@ -157,6 +157,12 @@ test.describe('Mr. Meeseeks Aquarium', () => {
         return {
           setMuted: typeof a.setMuted,
           isMuted: typeof a.isMuted,
+          setAmbientEnabled: typeof a.setAmbientEnabled,
+          isAmbientEnabled: typeof a.isAmbientEnabled,
+          setMasterVolume: typeof a.setMasterVolume,
+          getMasterVolume: typeof a.getMasterVolume,
+          setAmbientVolume: typeof a.setAmbientVolume,
+          getAmbientVolume: typeof a.getAmbientVolume,
           getLastPlayed: typeof a.getLastPlayed,
           forceTick: typeof a.forceTick,
           // Default behaviors:
@@ -168,11 +174,103 @@ test.describe('Mr. Meeseeks Aquarium', () => {
       expect(surface).toEqual({
         setMuted: 'function',
         isMuted: 'function',
+        setAmbientEnabled: 'function',
+        isAmbientEnabled: 'function',
+        setMasterVolume: 'function',
+        getMasterVolume: 'function',
+        setAmbientVolume: 'function',
+        getAmbientVolume: 'function',
         getLastPlayed: 'function',
         forceTick: 'function',
         unknownLastPlayed: null,
         forceTickReturn: null,
       });
+    });
+
+    test('audio settings popover opens, closes on outside click', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      const panel = page.locator('#audio-panel-wrapper');
+      await expect(panel).not.toHaveAttribute('open', /.*/);
+
+      await page.locator('#btn-audio-panel').click();
+      await expect(panel).toHaveAttribute('open', '');
+
+      // Click on the page background (canvas area) to close.
+      await page.locator('#pixi-container').click({ position: { x: 5, y: 5 } });
+      await expect(panel).not.toHaveAttribute('open', /.*/);
+    });
+
+    test('ambient toggle defaults to on and flips on click', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      expect(await page.evaluate(() => window.__aquarium!.audio.isAmbientEnabled())).toBe(true);
+      await expect(page.locator('#chk-ambient')).toBeChecked();
+
+      await page.locator('#btn-audio-panel').click();
+      await page.locator('#chk-ambient').click();
+      expect(await page.evaluate(() => window.__aquarium!.audio.isAmbientEnabled())).toBe(false);
+    });
+
+    test('master volume slider updates getMasterVolume', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      expect(await page.evaluate(() => window.__aquarium!.audio.getMasterVolume())).toBe(1);
+      await page.locator('#btn-audio-panel').click();
+      await page.locator('#rng-master').fill('40');
+      await page.locator('#rng-master').dispatchEvent('input');
+
+      const v = await page.evaluate(() => window.__aquarium!.audio.getMasterVolume());
+      expect(v).toBeCloseTo(0.4, 5);
+      await expect(page.locator('#lbl-master')).toHaveText('40%');
+    });
+
+    test('ambient volume slider updates getAmbientVolume', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      expect(await page.evaluate(() => window.__aquarium!.audio.getAmbientVolume())).toBeCloseTo(0.4, 5);
+      await page.locator('#btn-audio-panel').click();
+      await page.locator('#rng-ambient').fill('10');
+      await page.locator('#rng-ambient').dispatchEvent('input');
+
+      const v = await page.evaluate(() => window.__aquarium!.audio.getAmbientVolume());
+      expect(v).toBeCloseTo(0.1, 5);
+      await expect(page.locator('#lbl-ambient')).toHaveText('10%');
+    });
+
+    test('prefs persist across reload (ambient toggle + volumes; not mute)', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      // Mutate via direct hook calls to keep the test deterministic.
+      await page.evaluate(() => {
+        const a = window.__aquarium!.audio;
+        a.setAmbientEnabled(false);
+        a.setMasterVolume(0.3);
+        a.setAmbientVolume(0.15);
+        a.setMuted(false); // intentionally not persisted
+      });
+
+      await page.reload();
+      await waitForBoot(page);
+
+      const after = await page.evaluate(() => {
+        const a = window.__aquarium!.audio;
+        return {
+          ambientEnabled: a.isAmbientEnabled(),
+          masterVolume: a.getMasterVolume(),
+          ambientVolume: a.getAmbientVolume(),
+          muted: a.isMuted(),
+        };
+      });
+      expect(after.ambientEnabled).toBe(false);
+      expect(after.masterVolume).toBeCloseTo(0.3, 5);
+      expect(after.ambientVolume).toBeCloseTo(0.15, 5);
+      expect(after.muted).toBe(true); // mute resets to default each load
     });
   });
 });

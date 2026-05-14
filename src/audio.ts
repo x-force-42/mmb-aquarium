@@ -21,6 +21,7 @@ import {
   type AudioId,
 } from './audio-pick';
 import type { AudioConfig } from './audio-config';
+import { PREFS_STORAGE_KEY, validatePrefs, type AudioPrefs } from './audio-prefs';
 import type { MeeseeksId, MeeseeksState } from './types';
 import type { World } from './world';
 
@@ -53,13 +54,23 @@ interface MeeseeksAudioState {
 }
 
 interface PlayOptions {
-  ignoreCooldown?: boolean;
+  ignoreCooldown: boolean;
+  /** Routes the clip through the ambient bus (extra gain). Chain inherits this. */
+  isAmbient: boolean;
 }
 
 /** Public hook published on `window.__aquarium.audio`. */
 export interface AudioPublicHook {
   setMuted(value: boolean): void;
   isMuted(): boolean;
+  setAmbientEnabled(value: boolean): void;
+  isAmbientEnabled(): boolean;
+  /** Clamped to [0, 1]. Live-updates the master gain. */
+  setMasterVolume(value: number): void;
+  getMasterVolume(): number;
+  /** Clamped to [0, 1]. Cascades on top of master for ambient clips only. */
+  setAmbientVolume(value: number): void;
+  getAmbientVolume(): number;
   getLastPlayed(id: MeeseeksId): string | null;
   forceTick(): void;
 }
@@ -76,6 +87,16 @@ export class AudioSystem implements AudioPublicHook {
   private ctx: AudioContext | null = null;
   private readonly buffers = new Map<AudioId, AudioBuffer>();
   private muted: boolean;
+  private ambientEnabled: boolean;
+  private masterVolume: number;
+  private ambientVolume: number;
+
+  // Two-bus topology: every playback routes through ambientBus OR eventBus,
+  // both feeding masterGain, which feeds destination. Volume sliders mutate
+  // these GainNodes directly so changes are audible immediately.
+  private masterGain: GainNode | null = null;
+  private ambientBus: GainNode | null = null;
+  private eventBus: GainNode | null = null;
 
   private readonly audioStates = new Map<MeeseeksId, MeeseeksAudioState>();
   private birthTimestamps: number[] = [];
@@ -91,6 +112,11 @@ export class AudioSystem implements AudioPublicHook {
     this.panOf = deps.panOf ?? (() => 0);
     this.fetcher = deps.fetcher ?? ((url) => fetch(url));
     this.muted = config.defaultMuted;
+    this.ambientEnabled = config.ambientEnabled;
+    this.masterVolume = clamp(config.masterVolume, 0, 1);
+    this.ambientVolume = clamp(config.ambientVolume, 0, 1);
+    // Overlay any persisted prefs on top of config defaults (mute stays off-disk).
+    this.loadPersistedPrefs();
   }
 
   // ---------------------------------------------------------------------------
@@ -122,6 +148,20 @@ export class AudioSystem implements AudioPublicHook {
     }
 
     const ctx = this.ctx;
+    // Build the bus topology before decoding starts. Every clip will route
+    // through one of these two buses based on its classification.
+    this.masterGain = ctx.createGain();
+    this.masterGain.gain.value = this.masterVolume;
+    this.masterGain.connect(ctx.destination);
+
+    this.ambientBus = ctx.createGain();
+    this.ambientBus.gain.value = this.ambientVolume;
+    this.ambientBus.connect(this.masterGain);
+
+    this.eventBus = ctx.createGain();
+    this.eventBus.gain.value = 1.0;
+    this.eventBus.connect(this.masterGain);
+
     await Promise.all(
       AUDIO_IDS.map(async (id) => {
         const url = `/audio/${AUDIO_FILES[id]}`;
@@ -180,10 +220,45 @@ export class AudioSystem implements AudioPublicHook {
       // Triggered from a user click → safe to resume.
       this.ctx.resume().catch(() => {});
     }
+    // Mute is intentionally NOT persisted — see audio-prefs.ts for why.
   }
 
   isMuted(): boolean {
     return this.muted;
+  }
+
+  setAmbientEnabled(value: boolean): void {
+    if (this.ambientEnabled === value) return;
+    this.ambientEnabled = value;
+    this.persistPrefs();
+  }
+
+  isAmbientEnabled(): boolean {
+    return this.ambientEnabled;
+  }
+
+  setMasterVolume(value: number): void {
+    const v = clamp(value, 0, 1);
+    if (this.masterVolume === v) return;
+    this.masterVolume = v;
+    if (this.masterGain) this.masterGain.gain.value = v;
+    this.persistPrefs();
+  }
+
+  getMasterVolume(): number {
+    return this.masterVolume;
+  }
+
+  setAmbientVolume(value: number): void {
+    const v = clamp(value, 0, 1);
+    if (this.ambientVolume === v) return;
+    this.ambientVolume = v;
+    if (this.ambientBus) this.ambientBus.gain.value = v;
+    this.persistPrefs();
+  }
+
+  getAmbientVolume(): number {
+    return this.ambientVolume;
   }
 
   getLastPlayed(id: MeeseeksId): string | null {
@@ -193,7 +268,7 @@ export class AudioSystem implements AudioPublicHook {
 
   /** Test convenience — run one ambient tick for every Meeseeks right now. */
   forceTick(): void {
-    if (this.muted) return;
+    if (this.muted || !this.ambientEnabled) return;
     for (const id of Array.from(this.audioStates.keys())) {
       this.considerAmbient(id);
     }
@@ -220,7 +295,7 @@ export class AudioSystem implements AudioPublicHook {
     this.audioStates.set(m.id, state);
 
     if (this.recordBirthAndCheckBurst(now)) {
-      this.queueEventPlay(m.id, 'newborn', { ignoreCooldown: false });
+      this.queueEventPlay(m.id, 'newborn', { ignoreCooldown: false, isAmbient: false });
     }
 
     this.scheduleAmbient(m.id);
@@ -230,7 +305,7 @@ export class AudioSystem implements AudioPublicHook {
     const s = this.audioStates.get(m.id);
     if (!s) return;
     if (prevHealth > 0.4 && m.health <= 0.4 && !m.isFreakingOut) {
-      this.queueEventPlay(m.id, 'critical', { ignoreCooldown: false });
+      this.queueEventPlay(m.id, 'critical', { ignoreCooldown: false, isAmbient: false });
     }
     s.health = m.health;
     s.isFreakingOut = m.isFreakingOut;
@@ -240,7 +315,7 @@ export class AudioSystem implements AudioPublicHook {
     const s = this.audioStates.get(m.id);
     if (!s) return;
     s.isFreakingOut = true;
-    this.queueEventPlay(m.id, 'freakingOut', { ignoreCooldown: true });
+    this.queueEventPlay(m.id, 'freakingOut', { ignoreCooldown: true, isAmbient: false });
   }
 
   private handleRecovered(m: MeeseeksState): void {
@@ -248,7 +323,7 @@ export class AudioSystem implements AudioPublicHook {
     if (!s) return;
     s.isFreakingOut = false;
     s.recoveredAtMs = this.now();
-    this.queueEventPlay(m.id, 'recovered', { ignoreCooldown: false });
+    this.queueEventPlay(m.id, 'recovered', { ignoreCooldown: false, isAmbient: false });
   }
 
   private handleDeath(m: MeeseeksState, mood: 'dyingHappy' | 'dyingDefeated'): void {
@@ -259,7 +334,7 @@ export class AudioSystem implements AudioPublicHook {
       s.ambientTimerId = null;
     }
     // Death wins over cooldown and pre-empts whatever's playing.
-    this.queueEventPlay(m.id, mood, { ignoreCooldown: true });
+    this.queueEventPlay(m.id, mood, { ignoreCooldown: true, isAmbient: false });
 
     // Cleanup once the death clip plausibly finishes.
     const buffer = this.buffers.get(mood === 'dyingHappy' ? 'allDone' : 'iJustWantToDie');
@@ -288,7 +363,7 @@ export class AudioSystem implements AudioPublicHook {
   }
 
   private considerAmbient(id: MeeseeksId): void {
-    if (this.muted || this.destroyed) return;
+    if (this.muted || this.destroyed || !this.ambientEnabled) return;
     const s = this.audioStates.get(id);
     if (!s) return;
     const mood = this.aliveMoodOf(s);
@@ -296,7 +371,7 @@ export class AudioSystem implements AudioPublicHook {
     if (prob <= 0) return;
     if (this.random() >= prob) return;
     if (this.activePlaybacks >= this.config.concurrentCap) return; // ambient drops on cap
-    this.tryPlay(id, mood, {});
+    this.tryPlay(id, mood, { ignoreCooldown: false, isAmbient: true });
   }
 
   // ---------------------------------------------------------------------------
@@ -330,7 +405,7 @@ export class AudioSystem implements AudioPublicHook {
     const audioId = pickAudio(mood, s.lastPlayedId, this.random);
     if (!audioId) return;
 
-    if (this.playClip(id, audioId, s, mood, false)) {
+    if (this.playClip(id, audioId, s, mood, false, opts.isAmbient)) {
       s.lastPlayedId = audioId;
     }
   }
@@ -350,10 +425,12 @@ export class AudioSystem implements AudioPublicHook {
     s: MeeseeksAudioState,
     mood: Mood,
     isChained: boolean,
+    isAmbient: boolean,
   ): boolean {
     const ctx = this.ctx;
     const buffer = this.buffers.get(audioId);
-    if (!ctx || !buffer) {
+    const bus = isAmbient ? this.ambientBus : this.eventBus;
+    if (!ctx || !buffer || !bus) {
       // Audio not loaded yet — apply standard cooldown so we don't spam decisions.
       s.cooldownUntilMs = this.now() + this.config.cooldownS * 1000;
       return false;
@@ -373,7 +450,7 @@ export class AudioSystem implements AudioPublicHook {
     const panner = ctx.createStereoPanner();
     panner.pan.value = clamp(this.panOf(mid), -1, 1);
 
-    source.connect(gain).connect(panner).connect(ctx.destination);
+    source.connect(gain).connect(panner).connect(bus);
 
     // Tentative cooldown until clip end — blocks ambient overlap automatically.
     const durationMs = (buffer.duration / s.pitchOffset) * 1000;
@@ -408,9 +485,11 @@ export class AudioSystem implements AudioPublicHook {
       }
       const chainId = pickChain(audioId, mood, this.random);
       if (chainId && this.buffers.has(chainId) && !this.muted) {
-        // Chain bypasses cooldown gate but applies chain-cooldown when it ends.
+        // Chain inherits the primary's ambient/event classification — keeps
+        // a started sequence on the same bus even if the user toggles ambient
+        // off mid-clip.
         cur.lastPlayedId = chainId;
-        this.playClip(mid, chainId, cur, mood, true);
+        this.playClip(mid, chainId, cur, mood, true, isAmbient);
       } else {
         cur.cooldownUntilMs = this.now() + this.config.cooldownS * 1000;
       }
@@ -462,6 +541,41 @@ export class AudioSystem implements AudioPublicHook {
       return performance.now();
     }
     return Date.now();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Persistence (localStorage). Mute is intentionally excluded.
+  // ---------------------------------------------------------------------------
+
+  private loadPersistedPrefs(): void {
+    if (typeof window === 'undefined') return;
+    let raw: string | null;
+    try {
+      raw = window.localStorage.getItem(PREFS_STORAGE_KEY);
+    } catch {
+      return; // localStorage access can throw in strict sandboxes
+    }
+    if (!raw) return;
+    let parsed: unknown;
+    try { parsed = JSON.parse(raw); } catch { return; }
+    const prefs = validatePrefs(parsed);
+    if (prefs.ambientEnabled !== undefined) this.ambientEnabled = prefs.ambientEnabled;
+    if (prefs.masterVolume !== undefined) this.masterVolume = prefs.masterVolume;
+    if (prefs.ambientVolume !== undefined) this.ambientVolume = prefs.ambientVolume;
+  }
+
+  private persistPrefs(): void {
+    if (typeof window === 'undefined') return;
+    const prefs: AudioPrefs = {
+      ambientEnabled: this.ambientEnabled,
+      masterVolume: this.masterVolume,
+      ambientVolume: this.ambientVolume,
+    };
+    try {
+      window.localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(prefs));
+    } catch {
+      // Quota exceeded or storage disabled — non-fatal.
+    }
   }
 }
 

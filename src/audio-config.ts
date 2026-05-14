@@ -21,6 +21,12 @@ export interface AudioConfig {
   readonly newbornLockS: number;
   readonly recoveredLockS: number;
   readonly concurrentCap: number;
+  /** Whether ambient ticks ("ruídos") fire by default. Events still fire either way. */
+  readonly ambientEnabled: boolean;
+  /** Master gain applied to every clip. [0, 1]. */
+  readonly masterVolume: number;
+  /** Extra gain bus applied on top of master to ambient clips only. [0, 1]. */
+  readonly ambientVolume: number;
 }
 
 export const DEFAULT_AUDIO_CONFIG: AudioConfig = Object.freeze({
@@ -34,6 +40,9 @@ export const DEFAULT_AUDIO_CONFIG: AudioConfig = Object.freeze({
   newbornLockS: 1.5,
   recoveredLockS: 1.5,
   concurrentCap: 4,
+  ambientEnabled: true,
+  masterVolume: 1.0,
+  ambientVolume: 0.4,
 });
 
 /** Anything that quacks like Vite's `import.meta.env`. */
@@ -62,6 +71,9 @@ export function parseAudioConfig(env: EnvLike | undefined, warn: Warn = defaultW
     newbornLockS: parseNonNegativeNumber(e['VITE_AUDIO_NEWBORN_LOCK_S'], DEFAULT_AUDIO_CONFIG.newbornLockS, 'VITE_AUDIO_NEWBORN_LOCK_S', warn),
     recoveredLockS: parseNonNegativeNumber(e['VITE_AUDIO_RECOVERED_LOCK_S'], DEFAULT_AUDIO_CONFIG.recoveredLockS, 'VITE_AUDIO_RECOVERED_LOCK_S', warn),
     concurrentCap: parsePositiveInt(e['VITE_AUDIO_CONCURRENT_CAP'], DEFAULT_AUDIO_CONFIG.concurrentCap, 'VITE_AUDIO_CONCURRENT_CAP', warn),
+    ambientEnabled: parseBool(e['VITE_AUDIO_AMBIENT_ENABLED'], DEFAULT_AUDIO_CONFIG.ambientEnabled, 'VITE_AUDIO_AMBIENT_ENABLED', warn),
+    masterVolume: parseFraction(e['VITE_AUDIO_MASTER_VOLUME'], DEFAULT_AUDIO_CONFIG.masterVolume, 'VITE_AUDIO_MASTER_VOLUME', warn),
+    ambientVolume: parseFraction(e['VITE_AUDIO_AMBIENT_VOLUME'], DEFAULT_AUDIO_CONFIG.ambientVolume, 'VITE_AUDIO_AMBIENT_VOLUME', warn),
   };
 }
 
@@ -93,6 +105,16 @@ function parseNonNegativeNumber(raw: string | undefined, fallback: number, key: 
   const n = Number(raw);
   if (!Number.isFinite(n) || n < 0) {
     warn(`[audio-config] ${key}=${JSON.stringify(raw)} is not a non-negative number, using ${fallback}`);
+    return fallback;
+  }
+  return n;
+}
+
+function parseFraction(raw: string | undefined, fallback: number, key: string, warn: Warn): number {
+  if (raw === undefined || raw === '') return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0 || n > 1) {
+    warn(`[audio-config] ${key}=${JSON.stringify(raw)} is not a number in [0, 1], using ${fallback}`);
     return fallback;
   }
   return n;

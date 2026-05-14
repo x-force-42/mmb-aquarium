@@ -66,6 +66,54 @@
       font-size: 12px;
       color: #777;
     }
+
+    /* Audio settings popover ------------------------------------------------ */
+    .audio-panel-wrapper { position: relative; }
+    .audio-panel-wrapper > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      font-size: 13px;
+      padding: 6px 12px;
+      border: 1px solid #bbb;
+      background: #fff;
+      border-radius: 4px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .audio-panel-wrapper > summary::-webkit-details-marker { display: none; }
+    .audio-panel-wrapper > summary:hover { background: #f0f0f0; border-color: #999; }
+    .audio-panel-wrapper[open] > summary { background: #e5e5e5; }
+    .audio-panel {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      min-width: 240px;
+      padding: 12px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 10;
+    }
+    .audio-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #444;
+    }
+    .audio-row > span:first-child { flex: 0 0 90px; }
+    .audio-row input[type="range"] { flex: 1; min-width: 0; }
+    .audio-row input[type="checkbox"] { margin: 0; }
+    .audio-value {
+      min-width: 2.8em;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: #777;
+    }
   </style>
 </head>
 <body>
@@ -78,6 +126,25 @@
     <button id="btn-recovered">Recupera (aleat.)</button>
     <button id="btn-decay">Decai saúde de todos</button>
     <button id="btn-mute" aria-label="Ativar som" aria-pressed="true">🔇</button>
+    <details class="audio-panel-wrapper" id="audio-panel-wrapper">
+      <summary id="btn-audio-panel" aria-label="Configurações de áudio">⚙️</summary>
+      <div class="audio-panel" role="group" aria-label="Configurações de áudio">
+        <label class="audio-row">
+          <input type="checkbox" id="chk-ambient" checked>
+          <span>Ruídos ambient</span>
+        </label>
+        <label class="audio-row">
+          <span>Volume geral</span>
+          <input type="range" id="rng-master" min="0" max="100" step="1" value="100" aria-label="Volume geral">
+          <span class="audio-value" id="lbl-master">100%</span>
+        </label>
+        <label class="audio-row">
+          <span>Volume ambient</span>
+          <input type="range" id="rng-ambient" min="0" max="100" step="1" value="40" aria-label="Volume ambient">
+          <span class="audio-value" id="lbl-ambient">40%</span>
+        </label>
+      </div>
+    </details>
     <span class="counter" id="counter">0 vivos</span>
   </header>
 

@@ -86,6 +86,47 @@ function boot(): void {
     refreshMute();
   }
 
+  // Audio settings popover: ambient toggle + master / ambient volume sliders.
+  // State is read from the AudioSystem so persisted prefs already drive the
+  // initial values (defaults: ambient on, master 100%, ambient 40%).
+  const chkAmbient = document.getElementById('chk-ambient') as HTMLInputElement | null;
+  const rngMaster = document.getElementById('rng-master') as HTMLInputElement | null;
+  const rngAmbient = document.getElementById('rng-ambient') as HTMLInputElement | null;
+  const lblMaster = document.getElementById('lbl-master');
+  const lblAmbient = document.getElementById('lbl-ambient');
+  const fmtPct = (v: number): string => `${Math.round(v * 100)}%`;
+  if (chkAmbient) {
+    chkAmbient.checked = audio.isAmbientEnabled();
+    chkAmbient.addEventListener('change', () => audio.setAmbientEnabled(chkAmbient.checked));
+  }
+  if (rngMaster) {
+    rngMaster.value = String(Math.round(audio.getMasterVolume() * 100));
+    if (lblMaster) lblMaster.textContent = fmtPct(audio.getMasterVolume());
+    rngMaster.addEventListener('input', () => {
+      const v = Number(rngMaster.value) / 100;
+      audio.setMasterVolume(v);
+      if (lblMaster) lblMaster.textContent = fmtPct(v);
+    });
+  }
+  if (rngAmbient) {
+    rngAmbient.value = String(Math.round(audio.getAmbientVolume() * 100));
+    if (lblAmbient) lblAmbient.textContent = fmtPct(audio.getAmbientVolume());
+    rngAmbient.addEventListener('input', () => {
+      const v = Number(rngAmbient.value) / 100;
+      audio.setAmbientVolume(v);
+      if (lblAmbient) lblAmbient.textContent = fmtPct(v);
+    });
+  }
+  // Outside-click closes the popover so it doesn't linger after a setting nudge.
+  const audioPanel = document.getElementById('audio-panel-wrapper') as HTMLDetailsElement | null;
+  if (audioPanel) {
+    document.addEventListener('click', (e) => {
+      if (!audioPanel.open) return;
+      if (audioPanel.contains(e.target as Node)) return;
+      audioPanel.open = false;
+    });
+  }
+
   // Stable handle for e2e tests / devtools poking.
   window.__aquarium = { world, renderer, sim, audio };
 }

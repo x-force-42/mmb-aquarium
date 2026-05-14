@@ -112,6 +112,64 @@ describe('parseAudioConfig', () => {
       VITE_AUDIO_BIRTH_BURST_WINDOW_MS: 'foo',
       VITE_AUDIO_COOLDOWN_S: 'nope',
       VITE_AUDIO_CONCURRENT_CAP: '-3',
+      VITE_AUDIO_AMBIENT_ENABLED: 'sometimes',
+      VITE_AUDIO_MASTER_VOLUME: '11',
+      VITE_AUDIO_AMBIENT_VOLUME: 'banana',
     }, () => {})).not.toThrow();
+  });
+
+  describe('ambient + volume mix', () => {
+    it('defaults: ambient enabled, master 1.0, ambient 0.4', () => {
+      const cfg = parseAudioConfig({});
+      expect(cfg.ambientEnabled).toBe(true);
+      expect(cfg.masterVolume).toBe(1.0);
+      expect(cfg.ambientVolume).toBe(0.4);
+    });
+
+    it('parses VITE_AUDIO_AMBIENT_ENABLED as a boolean', () => {
+      expect(parseAudioConfig({ VITE_AUDIO_AMBIENT_ENABLED: 'false' }).ambientEnabled).toBe(false);
+      expect(parseAudioConfig({ VITE_AUDIO_AMBIENT_ENABLED: 'no' }).ambientEnabled).toBe(false);
+      expect(parseAudioConfig({ VITE_AUDIO_AMBIENT_ENABLED: 'true' }).ambientEnabled).toBe(true);
+    });
+
+    it('accepts valid fractions for the volumes', () => {
+      const cfg = parseAudioConfig({
+        VITE_AUDIO_MASTER_VOLUME: '0.5',
+        VITE_AUDIO_AMBIENT_VOLUME: '0',
+      });
+      expect(cfg.masterVolume).toBe(0.5);
+      expect(cfg.ambientVolume).toBe(0);
+    });
+
+    it('accepts the boundaries 0 and 1', () => {
+      const lo = parseAudioConfig({ VITE_AUDIO_MASTER_VOLUME: '0', VITE_AUDIO_AMBIENT_VOLUME: '0' });
+      expect(lo.masterVolume).toBe(0);
+      expect(lo.ambientVolume).toBe(0);
+      const hi = parseAudioConfig({ VITE_AUDIO_MASTER_VOLUME: '1', VITE_AUDIO_AMBIENT_VOLUME: '1' });
+      expect(hi.masterVolume).toBe(1);
+      expect(hi.ambientVolume).toBe(1);
+    });
+
+    it('falls back when a volume is out of [0, 1] (negative or > 1)', () => {
+      const warn = vi.fn();
+      const cfg = parseAudioConfig({
+        VITE_AUDIO_MASTER_VOLUME: '-0.1',
+        VITE_AUDIO_AMBIENT_VOLUME: '1.5',
+      }, warn);
+      expect(cfg.masterVolume).toBe(1.0);
+      expect(cfg.ambientVolume).toBe(0.4);
+      expect(warn).toHaveBeenCalledTimes(2);
+    });
+
+    it('falls back when a volume is non-numeric', () => {
+      const warn = vi.fn();
+      const cfg = parseAudioConfig({
+        VITE_AUDIO_MASTER_VOLUME: 'banana',
+        VITE_AUDIO_AMBIENT_VOLUME: 'NaN',
+      }, warn);
+      expect(cfg.masterVolume).toBe(1.0);
+      expect(cfg.ambientVolume).toBe(0.4);
+      expect(warn).toHaveBeenCalledTimes(2);
+    });
   });
 });

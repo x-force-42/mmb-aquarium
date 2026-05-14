@@ -222,6 +222,9 @@ identity strong. Adding more variants later is a config-only change.
 | Recovered-mood lock (s)                         | `1.5`                              | `VITE_AUDIO_RECOVERED_LOCK_S`           |
 | Birth-burst greeter cap                         | `3`                                | `VITE_AUDIO_BIRTH_BURST_CAP`            |
 | Birth-burst window (ms)                         | `400`                              | `VITE_AUDIO_BIRTH_BURST_WINDOW_MS`      |
+| Ambient enabled at boot                         | `true`                             | `VITE_AUDIO_AMBIENT_ENABLED`            |
+| Master volume (gain)                            | `1.0` (range 0..1)                 | `VITE_AUDIO_MASTER_VOLUME`              |
+| Ambient bus volume (extra gain, ambient only)   | `0.4` (range 0..1)                 | `VITE_AUDIO_AMBIENT_VOLUME`             |
 
 If a trigger hits while the per-Meeseeks cooldown is active, it's dropped (with
 two exceptions: `onFreakingOut`, `onDiedHappy`, `onDiedDefeated` — those always
@@ -332,6 +335,40 @@ Three pitfalls a fresh agent will hit if not warned:
 
 ---
 
+## Volume mix (ambient vs event)
+
+The audio graph splits playback into two parallel buses so the user can
+silence (or just turn down) the "ruídos" without losing the event-driven
+beats that signal what's happening in the world.
+
+```
+   source ─ gainPerPlayback ─ panner ─┬─▶ ambientBus ──┐
+                                       └─▶ eventBus  ──┴─▶ masterGain ─▶ destination
+```
+
+- **`masterGain`** — single GainNode that gates *everything*. Slider `Volume geral`.
+- **`ambientBus`** — extra GainNode in series, only for ambient clips.
+  Slider `Volume ambient`. Stacks multiplicatively with master.
+- **`eventBus`** — pass-through (`gain = 1`) so events always play at nominal
+  level once master is applied.
+- **Classification:** event-driven triggers (`onBorn`, `onFreakingOut`,
+  `onRecovered`, `onDiedHappy`, `onDiedDefeated`, `health` crossing `0.4` down)
+  route through `eventBus`. The "consider speaking" ambient ticks route
+  through `ambientBus`. **Chains inherit** the primary's classification —
+  a chain started by a greeting stays on the event bus even if ambient gets
+  toggled mid-clip.
+- **Toggle "Ruídos ambient"** — when off, ambient ticks are skipped at the
+  consideration step (`considerAmbient` returns early). In-flight clips are
+  left to play out; only *new* ticks are blocked. Event triggers are
+  untouched.
+- **Mute (separate)** — top-level kill switch; blocks every decision and
+  every playback regardless of toggle/volume state.
+
+The three user-facing controls (toggle + 2 sliders) live in a popover
+behind the `⚙️` button in the header. Their state persists across reloads
+via `localStorage` under the key `mma-audio-prefs` (mute is intentionally
+*not* persisted — autoplay policies make reloading with mute off awkward).
+
 ## Configuration (.env)
 
 All tunables live in a `.env` (or `.env.local`) file read by Vite at build/dev
@@ -367,6 +404,11 @@ VITE_AUDIO_RECOVERED_LOCK_S=1.5
 
 # --- Concurrency --------------------------------------------------------------
 VITE_AUDIO_CONCURRENT_CAP=4
+
+# --- Volume mix ---------------------------------------------------------------
+VITE_AUDIO_AMBIENT_ENABLED=true
+VITE_AUDIO_MASTER_VOLUME=1.0
+VITE_AUDIO_AMBIENT_VOLUME=0.4
 ```
 
 A `.env.example` with these defaults gets committed; `.env` and `.env.local`
@@ -383,3 +425,4 @@ stay in `.gitignore` for per-developer overrides.
 | 3  | Birth burst limit?                    | **First 3 greet** in a 400 ms window. Configurable.                |
 | 4  | Cooldown defaults — too chatty?       | **Ship the defaults, tune by ear.** Every cadence value is in `.env`. |
 | 5  | Newborn primary line: vary or fix?    | **Fix on `imMrMeeseeks`.** The "I'm Mr. Meeseeks, look at me!" line is iconic enough that randomizing the *first* sound of every birth dilutes it. Variety comes from the chain roll, pitch variant, and pan. `mrMeeseeks` / `lookAtMe` / `canDo` keep weight 0 in the `newborn` row. |
+| 6  | Ambient "ruídos" optional + volume mix? | **Yes — and split into two buses.** A user toggle silences ambient ticks without affecting event-driven lines (born, freak, recover, death, critical crossing). Two stacked gain nodes: master gain over everything, ambient bus over master for ambient clips only. Defaults to ambient volume `0.4` so immersion stays in the background. Chains inherit the primary's classification (started ambient → ambient bus all the way through). Mid-clip toggle leaves the in-flight clip running; only new considerations are blocked. |

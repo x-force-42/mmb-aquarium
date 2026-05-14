@@ -53,7 +53,8 @@ src/
   audio-config.ts   ── parseAudioConfig(env) → AudioConfig (pure, never throws)
   audio-mood.ts     ── deriveMood(state, ctx) → Mood (pure)
   audio-pick.ts     ── AudioId inventory, weight matrix, pickAudio, pickChain (pure)
-  audio.ts          ── AudioSystem; owns AudioContext + decoded buffers
+  audio-prefs.ts    ── validatePrefs(raw) → Partial<AudioPrefs> (pure)
+  audio.ts          ── AudioSystem; owns AudioContext, master/ambient buses, persistence
   main.ts           ── boot(): wires Transport ↔ World ↔ { Renderer, AudioSystem }
 
 public/
@@ -62,7 +63,7 @@ public/
 tests/
   unit/             ── Vitest, happy-dom env
     emitter.test.ts, world.test.ts, transport.test.ts, colors.test.ts
-    audio-config.test.ts, audio-mood.test.ts, audio-pick.test.ts
+    audio-config.test.ts, audio-mood.test.ts, audio-pick.test.ts, audio-prefs.test.ts
   e2e/
     aquarium.spec.ts  ── Playwright; runs against `vite preview`
 ```
@@ -126,8 +127,11 @@ E2E tests rely on this. Treat it as part of the public API.
 | `renderer.spritePanX(id)`        | normalised x-pan for audio    |
 | `sim.born()`, `sim.killHappy()`, `sim.giveUp()`, `sim.triggerFreakOut()`, `sim.recover()`, `sim.decayAll(amount?)` | scenario setup |
 | `audio.setMuted(value)` / `audio.isMuted()` | mute toggle probes     |
+| `audio.setAmbientEnabled(v)` / `audio.isAmbientEnabled()` | ambient (ruídos) toggle |
+| `audio.setMasterVolume(v)` / `audio.getMasterVolume()` | master gain, clamp [0, 1] |
+| `audio.setAmbientVolume(v)` / `audio.getAmbientVolume()` | ambient-bus gain, clamp [0, 1] |
 | `audio.getLastPlayed(id)`        | per-Meeseeks last clip (camelCase id, or `null`) |
-| `audio.forceTick()`              | run an ambient consideration immediately (no-op while muted) |
+| `audio.forceTick()`              | run an ambient consideration immediately (no-op while muted or ambient-off) |
 
 **Rule:** never remove or rename a member of this surface without updating
 `tests/e2e/aquarium.spec.ts` in the same change.
@@ -235,8 +239,10 @@ Files:
 src/audio-config.ts  ── parseAudioConfig(env) → AudioConfig; never throws.
 src/audio-mood.ts    ── deriveMood(state, ctx) → Mood; pure.
 src/audio-pick.ts    ── AudioId inventory, weight matrix, pickAudio, pickChain; pure.
+src/audio-prefs.ts   ── validatePrefs(raw) → Partial<AudioPrefs>; pure (localStorage shape).
 src/audio.ts         ── AudioSystem class: AudioContext, buffer cache, ambient ticker,
-                        per-Meeseeks state, mute toggle, test hooks.
+                        master + ambient gain buses, per-Meeseeks state, mute / ambient
+                        toggle, volume sliders, test hooks. Persists prefs to localStorage.
 ```
 
 Composition is one-way, like the Renderer:
@@ -251,6 +257,15 @@ the example.
 
 Mute defaults to ON. The mute button (`#btn-mute`) is also the user-gesture
 that resumes the `AudioContext` in browsers that suspend it until interaction.
+
+A `⚙️` popover next to the mute button (`<details id="audio-panel-wrapper">`)
+exposes three persisted controls: an "Ruídos ambient" checkbox that gates
+the 2±1 s consideration tick, a "Volume geral" master gain, and a
+"Volume ambient" gain that stacks on top of master for ambient clips only.
+Event-driven lines (born / freak / recover / death / critical crossing) and
+their chains always go through the event bus, so the ambient toggle and
+ambient volume never silence them. State persists under
+`localStorage["mma-audio-prefs"]`; mute does not (autoplay policies).
 
 ---
 
