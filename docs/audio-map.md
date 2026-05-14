@@ -91,10 +91,10 @@ likely.
 
 | Audio                          | newborn | healthy | declining | critical | freakingOut | recovered | dyingHappy | dyingDefeated |
 | ------------------------------ | :-----: | :-----: | :-------: | :------: | :---------: | :-------: | :--------: | :-----------: |
-| `imMrMeeseeks`                 |    5    |    0    |     0     |    0     |      0      |     0     |     0      |       0       |
-| `mrMeeseeks`                   |    3    |    0    |     0     |    0     |      0      |     0     |     0      |       0       |
-| `lookAtMe`                     |    2    |    1    |     0     |    0     |      0      |     0     |     0      |       0       |
-| `canDo`                        |    2    |    4    |     1     |    0     |      0      |     4     |     0      |       0       |
+| `imMrMeeseeks`                 |    1    |    0    |     0     |    0     |      0      |     0     |     0      |       0       |
+| `mrMeeseeks`                   |    0    |    0    |     0     |    0     |      0      |     0     |     0      |       0       |
+| `lookAtMe`                     |    0    |    1    |     0     |    0     |      0      |     0     |     0      |       0       |
+| `canDo`                        |    0    |    4    |     1     |    0     |      0      |     4     |     0      |       0       |
 | `excuseMe`                     |    0    |    2    |     3     |    1     |      0      |     1     |     0      |       0       |
 | `letMeTry`                     |    0    |    2    |     3     |    1     |      1      |     1     |     0      |       0       |
 | `ohOk`                         |    0    |    0    |     1     |    2     |      0      |     4     |     0      |       0       |
@@ -104,8 +104,10 @@ likely.
 
 **Reading the columns:**
 
-- `newborn`: the three greetings dominate, with "Can do!" as a likely chained
-  follow-up. Variety here is what makes births feel alive.
+- `newborn`: deterministic — every birth opens with the iconic
+  "I'm Mr. Meeseeks, look at me!" The variety in births still comes from the
+  *chain roll* afterward (35% canDo, 15% lookAtMe, 50% silence) plus the
+  per-Meeseeks pitch variant.
 - `healthy`: `canDo` is the spine of optimism. `letMeTry` and `excuseMe` show
   initiative. Occasional `lookAtMe` keeps them visible.
 - `declining`: `excuseMe` and `letMeTry` become the dominant lines — they're
@@ -380,3 +382,4 @@ stay in `.gitignore` for per-developer overrides.
 | 2  | One voice or many?                    | **One canonical voice + 2 pitch variants** (3 total, configurable).|
 | 3  | Birth burst limit?                    | **First 3 greet** in a 400 ms window. Configurable.                |
 | 4  | Cooldown defaults — too chatty?       | **Ship the defaults, tune by ear.** Every cadence value is in `.env`. |
+| 5  | Newborn primary line: vary or fix?    | **Fix on `imMrMeeseeks`.** The "I'm Mr. Meeseeks, look at me!" line is iconic enough that randomizing the *first* sound of every birth dilutes it. Variety comes from the chain roll, pitch variant, and pan. `mrMeeseeks` / `lookAtMe` / `canDo` keep weight 0 in the `newborn` row. |

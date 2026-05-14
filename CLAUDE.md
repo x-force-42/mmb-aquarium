@@ -12,17 +12,17 @@ system as Meeseeks creatures being born, living, freaking out, recovering, and
 dying. The external system is currently simulated via on-page buttons; a real
 WebSocket transport is wired as a stub for later.
 
-**Stack:** TypeScript (strict), Vite, PixiJS v7, Vitest, Playwright.
+**Stack:** TypeScript (strict), Vite, PixiJS v7, Web Audio API, Vitest, Playwright.
 
 ---
 
 ## Architecture (the single most important section)
 
-Three decoupled layers, one-way data flow:
+Decoupled layers, one-way data flow:
 
 ```
-   Transport  ──AppMessage──▶  World  ──WorldEvent──▶  Renderer
-       ▲                       (state)                   (Pixi)
+   Transport  ──AppMessage──▶  World  ──WorldEvent──▶  { Renderer, AudioSystem }
+       ▲                       (state)                   (Pixi)    (Web Audio)
        │
    buttons / WebSocket / tests
 ```
@@ -32,8 +32,9 @@ Three decoupled layers, one-way data flow:
 1. **`world.ts` imports only `emitter` and `types`.** No DOM, no Pixi, no transports. This is the testable core.
 2. **`transport.ts` imports only `types`.** It produces `AppMessage`s. It consumes a thin `WorldQuery` interface — never the `World` class itself.
 3. **`renderer.ts` imports `world` (for `bind`), `sprite`, `particle`, `colors`, `types`.** It subscribes to events; it never pushes back into the world.
-4. **`main.ts` is the ONLY file that wires concrete classes together.** Composition root. If you find yourself importing `World` in `transport.ts`, you've taken a wrong turn.
-5. **All cross-layer comms are typed.** `AppMessage` going into the world, `WorldEvents` coming out. If you add a new comm shape, update `types.ts` first.
+4. **`audio.ts` imports `world` (for `bind`), `audio-mood`, `audio-pick`, `audio-config`, `types` only.** It subscribes to events; never pushes back into the world. Pure helpers (`audio-mood.ts`, `audio-pick.ts`, `audio-config.ts`) have no DOM / no Web Audio so they're fully unit-testable.
+5. **`main.ts` is the ONLY file that wires concrete classes together.** Composition root. If you find yourself importing `World` in `transport.ts`, you've taken a wrong turn.
+6. **All cross-layer comms are typed.** `AppMessage` going into the world, `WorldEvents` coming out. If you add a new comm shape, update `types.ts` first.
 
 ---
 
@@ -41,26 +42,35 @@ Three decoupled layers, one-way data flow:
 
 ```
 src/
-  types.ts        ── AppMessage, MeeseeksState, WorldEvents, WorldQuery  (no logic)
-  emitter.ts      ── Emitter<TEvents> generic typed event bus
-  world.ts        ── World class; full state machine; pure
-  transport.ts    ── Transport interface + SimulatorTransport + WebSocketTransport
-  colors.ts       ── lerp, lerpColor, healthColor (pure math)
-  sprite.ts       ── MeeseeksSprite (Pixi-coupled; animation logic)
-  particle.ts     ── Particle (Pixi-coupled; death effects)
-  renderer.ts     ── Renderer; owns the Pixi Application
-  main.ts         ── boot(): wires Transport ↔ World ↔ Renderer
+  types.ts          ── AppMessage, MeeseeksState, WorldEvents, WorldQuery  (no logic)
+  emitter.ts        ── Emitter<TEvents> generic typed event bus
+  world.ts          ── World class; full state machine; pure
+  transport.ts      ── Transport interface + SimulatorTransport + WebSocketTransport
+  colors.ts         ── lerp, lerpColor, healthColor (pure math)
+  sprite.ts         ── MeeseeksSprite (Pixi-coupled; animation logic)
+  particle.ts       ── Particle (Pixi-coupled; death effects)
+  renderer.ts       ── Renderer; owns the Pixi Application
+  audio-config.ts   ── parseAudioConfig(env) → AudioConfig (pure, never throws)
+  audio-mood.ts     ── deriveMood(state, ctx) → Mood (pure)
+  audio-pick.ts     ── AudioId inventory, weight matrix, pickAudio, pickChain (pure)
+  audio.ts          ── AudioSystem; owns AudioContext + decoded buffers
+  main.ts           ── boot(): wires Transport ↔ World ↔ { Renderer, AudioSystem }
+
+public/
+  audio/*.mp3       ── 10 Meeseeks voice clips, served at /audio/<file>.mp3
 
 tests/
-  unit/           ── Vitest, happy-dom env
+  unit/             ── Vitest, happy-dom env
     emitter.test.ts, world.test.ts, transport.test.ts, colors.test.ts
+    audio-config.test.ts, audio-mood.test.ts, audio-pick.test.ts
   e2e/
     aquarium.spec.ts  ── Playwright; runs against `vite preview`
 ```
 
-Coverage strategy: unit tests cover the testable core (world, transport, emitter, colors).
-The Pixi-dependent files (renderer, sprite, particle) are intentionally excluded from unit
-coverage (see `vitest.config.ts`) and verified by the e2e suite instead.
+Coverage strategy: unit tests cover the testable cores (world, transport, emitter, colors,
+plus the three pure audio helpers). The Pixi- and Web-Audio-dependent files (renderer,
+sprite, particle, audio) are excluded from unit coverage (see `vitest.config.ts`) and
+verified by the e2e suite instead.
 
 ---
 
@@ -100,7 +110,7 @@ Or use the slash commands:
 `main.ts` exposes a stable test hook:
 
 ```ts
-window.__aquarium = { world, renderer, sim };
+window.__aquarium = { world, renderer, sim, audio };
 ```
 
 E2E tests rely on this. Treat it as part of the public API.
@@ -113,7 +123,11 @@ E2E tests rely on this. Treat it as part of the public API.
 | `world.get(id)`                  | id-specific assertions        |
 | `renderer.spriteCount()`         | render parity                 |
 | `renderer.hasSprite(id)`         | render parity                 |
+| `renderer.spritePanX(id)`        | normalised x-pan for audio    |
 | `sim.born()`, `sim.killHappy()`, `sim.giveUp()`, `sim.triggerFreakOut()`, `sim.recover()`, `sim.decayAll(amount?)` | scenario setup |
+| `audio.setMuted(value)` / `audio.isMuted()` | mute toggle probes     |
+| `audio.getLastPlayed(id)`        | per-Meeseeks last clip (camelCase id, or `null`) |
+| `audio.forceTick()`              | run an ambient consideration immediately (no-op while muted) |
 
 **Rule:** never remove or rename a member of this surface without updating
 `tests/e2e/aquarium.spec.ts` in the same change.
@@ -207,21 +221,36 @@ The stub is `WebSocketTransport` in `src/transport.ts`.
 
 ---
 
-## Audio system (planned, not yet wired)
+## Audio system
 
-A new `AudioSystem` layer will plug in alongside the Renderer to give each
-Meeseeks a voice driven by mood. The full mapping (which line plays in which
-state, weight matrix, cooldowns, chain rules) lives in
-[`docs/audio-map.md`](./docs/audio-map.md). Read that before implementing.
+Implemented. `AudioSystem` plugs in alongside the Renderer and gives each
+Meeseeks a voice driven by mood. The full design — moods, weight matrix,
+cooldowns, chain rules, `.env` knobs — lives in
+[`docs/audio-map.md`](./docs/audio-map.md). The implementation brief that
+shipped it is in [`docs/prompts/audio-implementation.md`](./docs/prompts/audio-implementation.md).
 
-Composition will look like:
+Files:
+
+```
+src/audio-config.ts  ── parseAudioConfig(env) → AudioConfig; never throws.
+src/audio-mood.ts    ── deriveMood(state, ctx) → Mood; pure.
+src/audio-pick.ts    ── AudioId inventory, weight matrix, pickAudio, pickChain; pure.
+src/audio.ts         ── AudioSystem class: AudioContext, buffer cache, ambient ticker,
+                        per-Meeseeks state, mute toggle, test hooks.
+```
+
+Composition is one-way, like the Renderer:
 
 ```
 Transport ─AppMessage→ World ─WorldEvent→ { Renderer, AudioSystem }
 ```
 
-Same architectural rules apply — `AudioSystem` subscribes via `world.on(...)`
-and never reaches into the world's internals.
+Knobs live in `.env` (`VITE_AUDIO_*`) — see [`.env.example`](./.env.example).
+Per-developer overrides go in `.env.local`; `.env*` is gitignored except for
+the example.
+
+Mute defaults to ON. The mute button (`#btn-mute`) is also the user-gesture
+that resumes the `AudioContext` in browsers that suspend it until interaction.
 
 ---
 

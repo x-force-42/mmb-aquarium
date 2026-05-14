@@ -6,6 +6,10 @@ playwright-report
 .vite
 *.log
 
+# Per-developer Vite env files. Only `.env.example` ships in git.
+.env
+.env.local
+
 # Claude Code per-user settings (project-level `settings.json` would be committed)
 .claude/settings.local.json
 

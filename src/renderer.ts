@@ -69,6 +69,22 @@ export class Renderer {
   spriteCount(): number { return this.sprites.size; }
   hasSprite(id: string): boolean { return this.sprites.has(id); }
 
+  /**
+   * Horizontal pan in [-1, 1] based on the sprite's screen-x center.
+   * Returns 0 if the sprite isn't in the scene (caller can treat as center).
+   * Generic geometry — the audio layer happens to be the first consumer.
+   */
+  spritePanX(id: string): number {
+    const sprite = this.sprites.get(id);
+    if (!sprite) return 0;
+    const half = this.app.screen.width / 2;
+    if (half <= 0) return 0;
+    const n = (sprite.basePos.x - half) / half;
+    if (n < -1) return -1;
+    if (n > 1) return 1;
+    return n;
+  }
+
   destroy(): void {
     this.app.destroy(true, { children: true });
   }

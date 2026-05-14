@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import type { World } from '../../src/world';
 import type { Renderer } from '../../src/renderer';
 import type { SimulatorTransport } from '../../src/transport';
+import type { AudioPublicHook } from '../../src/audio';
 
 /**
  * E2E guardrails — exercises the wired-up app from the user's POV.
@@ -18,7 +19,12 @@ import type { SimulatorTransport } from '../../src/transport';
 
 declare global {
   interface Window {
-    __aquarium?: { world: World; renderer: Renderer; sim: SimulatorTransport };
+    __aquarium?: {
+      world: World;
+      renderer: Renderer;
+      sim: SimulatorTransport;
+      audio: AudioPublicHook;
+    };
   }
 }
 
@@ -118,5 +124,55 @@ test.describe('Mr. Meeseeks Aquarium', () => {
     }
     const min = await page.evaluate(() => Math.min(...window.__aquarium!.world.getAll().map((m) => m.health)));
     expect(min).toBe(0);
+  });
+
+  test.describe('audio', () => {
+    test('mute toggle starts on by default', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      expect(await page.evaluate(() => window.__aquarium!.audio.isMuted())).toBe(true);
+      await expect(page.locator('#btn-mute')).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    test('toggle flips the state on click', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      await page.locator('#btn-mute').click();
+      expect(await page.evaluate(() => window.__aquarium!.audio.isMuted())).toBe(false);
+      await expect(page.locator('#btn-mute')).toHaveAttribute('aria-pressed', 'false');
+
+      await page.locator('#btn-mute').click();
+      expect(await page.evaluate(() => window.__aquarium!.audio.isMuted())).toBe(true);
+      await expect(page.locator('#btn-mute')).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    test('window.__aquarium.audio exposes the documented hook surface', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      const surface = await page.evaluate(() => {
+        const a = window.__aquarium!.audio;
+        return {
+          setMuted: typeof a.setMuted,
+          isMuted: typeof a.isMuted,
+          getLastPlayed: typeof a.getLastPlayed,
+          forceTick: typeof a.forceTick,
+          // Default behaviors:
+          unknownLastPlayed: a.getLastPlayed('does-not-exist'),
+          // forceTick is a no-op in muted state; should not throw.
+          forceTickReturn: (a.forceTick() as unknown) ?? null,
+        };
+      });
+      expect(surface).toEqual({
+        setMuted: 'function',
+        isMuted: 'function',
+        getLastPlayed: 'function',
+        forceTick: 'function',
+        unknownLastPlayed: null,
+        forceTickReturn: null,
+      });
+    });
   });
 });

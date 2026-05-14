@@ -13,7 +13,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      exclude: ['src/main.ts', 'src/renderer.ts', 'src/sprite.ts', 'src/particle.ts'],
+      exclude: [
+        'src/main.ts',
+        'src/renderer.ts',
+        'src/sprite.ts',
+        'src/particle.ts',
+        // Web Audio bound — exercised by the e2e suite, not by vitest.
+        'src/audio.ts',
+      ],
       reporter: ['text', 'html'],
     },
   },
