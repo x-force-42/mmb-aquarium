@@ -8,3 +8,6 @@ playwright-report
 
 # Claude Code per-user settings (project-level `settings.json` would be committed)
 .claude/settings.local.json
+
+# Claude Code worktrees — per-session working copies, never part of the repo
+.claude/worktrees/
