@@ -9,7 +9,7 @@
  */
 
 import { Renderer } from './renderer';
-import { SimulatorTransport } from './transport';
+import { SimulatorTransport, WebSocketTransport } from './transport';
 import { World } from './world';
 import { AudioSystem, type AudioPublicHook } from './audio';
 import { parseAudioConfig } from './audio-config';
@@ -46,14 +46,27 @@ function boot(): void {
 
   const sim = new SimulatorTransport(world);
   sim.onMessage((msg) => world.handleMessage(msg));
-  sim.bindButtons({
-    born: 'btn-born',
-    diedHappy: 'btn-died-happy',
-    diedDefeated: 'btn-died-defeated',
-    freakingOut: 'btn-freaking-out',
-    recovered: 'btn-recovered',
-    decay: 'btn-decay',
-  });
+
+  // Transport choice: WebSocket (relay-fed) when VITE_WS_URL is set, otherwise
+  // the button-driven simulator. The simulator object is always created so the
+  // `window.__aquarium.sim` test hook stays valid and devtools poking still
+  // works; we just skip wiring the visible buttons when WS is in charge.
+  // Vite types unknown VITE_* keys as `any`; widen to `unknown` and narrow below.
+  const wsUrl: unknown = import.meta.env.VITE_WS_URL;
+  if (typeof wsUrl === 'string' && wsUrl.length > 0) {
+    const ws = new WebSocketTransport(wsUrl);
+    ws.onMessage((msg) => world.handleMessage(msg));
+    ws.connect();
+  } else {
+    sim.bindButtons({
+      born: 'btn-born',
+      diedHappy: 'btn-died-happy',
+      diedDefeated: 'btn-died-defeated',
+      freakingOut: 'btn-freaking-out',
+      recovered: 'btn-recovered',
+      decay: 'btn-decay',
+    });
+  }
 
   // Header counter — minor UX nicety, not part of the core architecture.
   const counterEl = document.getElementById('counter');

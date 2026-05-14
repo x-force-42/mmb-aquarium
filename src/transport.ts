@@ -185,10 +185,22 @@ export class SimulatorTransport extends TransportBase {
 }
 
 // ---------------------------------------------------------------------------
-// WebSocketTransport — receives JSON; ready to plug in when a server exists.
+// WebSocketTransport — receives JSON frames from a producer-facing WS endpoint
+// (typically the local relay; see `scripts/ws-relay.mjs`). Reconnects on
+// disconnect with exponential backoff + jitter; never gives up.
 // ---------------------------------------------------------------------------
 export class WebSocketTransport extends TransportBase {
+  /** Backoff schedule in seconds; final value is reused indefinitely. */
+  private static readonly RECONNECT_DELAYS_S: readonly number[] = [1, 2, 5, 10, 30];
+  /** ±20 % jitter so a thundering herd of reloads doesn't pile in at the same tick. */
+  private static readonly JITTER = 0.2;
+
   private ws: WebSocket | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Bumped on every scheduled retry; reset only on a successful `open`. */
+  private reconnectAttempt = 0;
+  /** True once `close()` was called; suppresses the auto-reconnect path. */
+  private intentionalClose = false;
 
   constructor(public readonly url: string) {
     super();
@@ -196,8 +208,30 @@ export class WebSocketTransport extends TransportBase {
 
   connect(): void {
     if (this.ws) return;
-    this.ws = new WebSocket(this.url);
-    this.ws.addEventListener('message', (ev: MessageEvent) => {
+    this.intentionalClose = false;
+    this.openSocket();
+  }
+
+  close(): void {
+    this.intentionalClose = true;
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.ws?.close();
+    this.ws = null;
+  }
+
+  private openSocket(): void {
+    const ws = new WebSocket(this.url);
+    this.ws = ws;
+
+    ws.addEventListener('open', () => {
+      console.warn(`WebSocketTransport: connected to ${this.url}`);
+      this.reconnectAttempt = 0;
+    });
+
+    ws.addEventListener('message', (ev: MessageEvent) => {
       try {
         const parsed: unknown = JSON.parse(String(ev.data));
         if (isAppMessage(parsed)) {
@@ -209,11 +243,34 @@ export class WebSocketTransport extends TransportBase {
         console.warn('WebSocketTransport: bad JSON payload', err);
       }
     });
+
+    ws.addEventListener('error', () => {
+      // The `close` event always follows; that's where reconnect is scheduled.
+      console.warn('WebSocketTransport: socket error');
+    });
+
+    ws.addEventListener('close', (ev) => {
+      console.warn(`WebSocketTransport: socket closed (code=${ev.code})`);
+      this.ws = null;
+      if (this.intentionalClose) return;
+      this.scheduleReconnect();
+    });
   }
 
-  close(): void {
-    this.ws?.close();
-    this.ws = null;
+  private scheduleReconnect(): void {
+    const idx = Math.min(this.reconnectAttempt, WebSocketTransport.RECONNECT_DELAYS_S.length - 1);
+    const baseS = WebSocketTransport.RECONNECT_DELAYS_S[idx] ?? 30;
+    this.reconnectAttempt += 1;
+    // eslint-disable-next-line sonarjs/pseudo-random -- reason: cosmetic backoff jitter, not security-sensitive
+    const jitter = 1 + (Math.random() * 2 - 1) * WebSocketTransport.JITTER;
+    const delayMs = Math.max(0, Math.round(baseS * 1000 * jitter));
+    console.warn(
+      `WebSocketTransport: reconnecting in ${delayMs}ms (attempt ${this.reconnectAttempt})`,
+    );
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.openSocket();
+    }, delayMs);
   }
 }
 

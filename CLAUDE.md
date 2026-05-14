@@ -38,6 +38,47 @@ Decoupled layers, one-way data flow:
 
 ---
 
+## Local WS relay (browser can't host a server)
+
+The MMB producer team writes against `ws://localhost:8080/ws`, but the
+aquarium is a browser page and can't open a listening socket. A tiny Node
+relay (`scripts/ws-relay.mjs`, ~50 lines, uses `ws`) bridges them:
+
+```
+   MMB producer ─► relay (Node, :8080/ws) ─► WebSocketTransport (browser)
+                          broadcasts every frame
+                          to all OTHER clients
+```
+
+The relay is **state-less and transparent**: bytes in, same bytes out to
+every other open client. It does not parse, validate, buffer, or cache.
+Run it alongside `npm run dev`:
+
+```
+# terminal 1
+npm run relay        # listens on 0.0.0.0:8080/ws (PORT + RELAY_HOST overrideable)
+# terminal 2
+npm run dev          # Vite. With VITE_WS_URL set in .env.local, the page
+                     # boots using WebSocketTransport instead of the buttons.
+```
+
+Set `VITE_WS_URL=ws://localhost:8080/ws` in `.env.local` to flip the
+browser to the WS path. Leave it unset to keep the default
+`SimulatorTransport` (button-driven) experience — that's what e2e runs
+against. The reconnect curve (1, 2, 5, 10, 30 s with ±20 % jitter, no
+max retries) lives in `WebSocketTransport`; the relay itself does no
+reconnect logic (if it restarts, both ends reconnect on their own).
+
+The relay binds to `0.0.0.0` by default so a producer running in WSL,
+Docker, or another VM can reach the host. From those environments,
+`127.0.0.1` resolves to the _guest's_ own loopback — not the host's —
+which produces `ECONNREFUSED` before any WS handshake. Cross-namespace
+producers should point at the host's externally-visible IP (in WSL2:
+`ip route show default | awk '{print $3}'`). Lock the bind back to
+loopback-only with `RELAY_HOST=127.0.0.1 npm run relay` when needed.
+
+---
+
 ## File map
 
 ```
@@ -67,6 +108,9 @@ tests/
   e2e/
     aquarium.spec.ts  ── Playwright; runs against `vite preview`
 
+scripts/
+  ws-relay.mjs      ── Node WS broadcast relay (MMB → browser bridge)
+
 guardrail configs (root):
   eslint.config.js         ── flat-config ESLint (typescript-eslint, import,
                               promise, sonarjs, vitest, playwright, prettier)
@@ -90,6 +134,7 @@ verified by the e2e suite instead.
 ```
 npm install              ── one-time (also installs husky hooks via `prepare`)
 npm run dev              ── Vite dev server on :5173
+npm run relay            ── Local Node WS relay on :8080 (MMB ↔ browser bridge)
 npm run typecheck        ── tsc --noEmit, strict
 npm run lint             ── ESLint over the whole tree
 npm run lint:fix         ── ESLint --fix

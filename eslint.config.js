@@ -39,6 +39,9 @@ export default tseslint.config(
       // They're separate working copies of other branches; never lint them
       // from here — they have their own ESLint run.
       '.claude/**',
+      // Standalone Node helper scripts (relay, tooling). They live outside the
+      // TS project graph and would otherwise trip the type-aware parser.
+      'scripts/**',
     ],
   },
 

@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 4173",
+    "relay": "node scripts/ws-relay.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -34,7 +35,8 @@
     ]
   },
   "dependencies": {
-    "pixi.js": "^7.4.2"
+    "pixi.js": "^7.4.2",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.0.1",
