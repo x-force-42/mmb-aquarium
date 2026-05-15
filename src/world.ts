@@ -17,9 +17,22 @@ function clamp01(n: number): number {
   return n;
 }
 
-/** Returns a defensive shallow copy so callers can't mutate internal state. */
+/**
+ * Returns a defensive shallow copy so callers can't mutate internal state.
+ *
+ * `kind` is propagated as a true optional under `exactOptionalPropertyTypes`:
+ * the key is omitted when the source has no archetype (treated as the default
+ * `'meeseeks'` by downstream consumers).
+ */
 function copy(m: MeeseeksState): MeeseeksState {
-  return { id: m.id, health: m.health, isFreakingOut: m.isFreakingOut, name: m.name, task: m.task };
+  return {
+    id: m.id,
+    health: m.health,
+    isFreakingOut: m.isFreakingOut,
+    name: m.name,
+    task: m.task,
+    ...(m.kind !== undefined ? { kind: m.kind } : {}),
+  };
 }
 
 export class World implements WorldQuery {
@@ -89,6 +102,7 @@ export class World implements WorldQuery {
         isFreakingOut: !!raw.isFreakingOut,
         name: raw.name ?? null,
         task: raw.task ?? null,
+        ...(raw.kind !== undefined ? { kind: raw.kind } : {}),
       };
       this.state.set(m.id, m);
       this.emitter.emit('onBorn', copy(m));
@@ -116,6 +130,7 @@ export class World implements WorldQuery {
           isFreakingOut: false,
           name: msg.name ?? null,
           task: msg.task ?? null,
+          ...(msg.entityKind !== undefined ? { kind: msg.entityKind } : {}),
         };
         this.state.set(id, m);
         this.emitter.emit('onBorn', copy(m));

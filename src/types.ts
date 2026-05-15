@@ -8,6 +8,18 @@
 // eslint-disable-next-line sonarjs/redundant-type-aliases -- reason: kept as a documentation handle ("this string is a Meeseeks id"); structural typing is intentional.
 export type MeeseeksId = string;
 
+/**
+ * Visual archetype of an aquarium entity.
+ *
+ * - `meeseeks` (default when omitted): the canonical blue creature; the
+ *   "doer" archetype. Used for atomic agents (worker sessions) and any
+ *   short-lived task entity.
+ * - `morty`: yellow archetype introduced for the andaime view to mark
+ *   orchestrator agents (the Mestre and per-project orqs). Same physics
+ *   and lifecycle as a Meeseeks; only the base tint differs.
+ */
+export type MeeseeksKind = 'meeseeks' | 'morty';
+
 /** Internal, normalized state of a single Meeseeks. */
 export interface MeeseeksState {
   readonly id: MeeseeksId;
@@ -15,6 +27,13 @@ export interface MeeseeksState {
   isFreakingOut: boolean;
   name: string | null;
   task: string | null;
+  /**
+   * Visual archetype. Optional on the wire and in storage; consumers that
+   * care about the distinction treat `undefined` as `'meeseeks'`. Stored
+   * as a true optional (not `'meeseeks' | undefined`) to satisfy
+   * `exactOptionalPropertyTypes`.
+   */
+  kind?: MeeseeksKind;
 }
 
 export type EventKind = 'born' | 'died_happy' | 'died_defeated' | 'freaking_out' | 'recovered';
@@ -26,13 +45,22 @@ export interface MeeseeksSnapshotEntry {
   isFreakingOut?: boolean;
   name?: string;
   task?: string;
+  kind?: MeeseeksKind;
 }
 
 /** Discriminated union for everything that crosses the Transport <-> World boundary. */
 export type AppMessage =
   | { type: 'snapshot'; meeseeks: ReadonlyArray<MeeseeksSnapshotEntry> }
   | { type: 'state'; id: MeeseeksId; health: number }
-  | { type: 'event'; id: MeeseeksId; kind: EventKind; name?: string; task?: string };
+  | {
+      type: 'event';
+      id: MeeseeksId;
+      kind: EventKind;
+      name?: string;
+      task?: string;
+      /** Only meaningful when the event `kind === 'born'`. Otherwise ignored. */
+      entityKind?: MeeseeksKind;
+    };
 
 /** Strongly typed map of World events that the renderer (and tests) subscribe to. */
 export interface WorldEvents {

@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { COLOR_DECAYED, COLOR_HEALTHY, healthColor, lerp, lerpColor } from '../../src/colors';
+import {
+  COLOR_DECAYED,
+  COLOR_HEALTHY,
+  COLOR_MORTY,
+  healthColor,
+  lerp,
+  lerpColor,
+} from '../../src/colors';
 
 describe('lerp', () => {
   it('returns endpoints at t=0 and t=1', () => {
@@ -39,5 +46,25 @@ describe('healthColor', () => {
     const mid = healthColor(0.5);
     expect(mid).not.toBe(COLOR_HEALTHY);
     expect(mid).not.toBe(COLOR_DECAYED);
+  });
+
+  describe('kind variants', () => {
+    it('kind="meeseeks" matches the default (omitted) path', () => {
+      expect(healthColor(1, 'meeseeks')).toBe(healthColor(1));
+      expect(healthColor(0.4, 'meeseeks')).toBe(healthColor(0.4));
+    });
+    it('kind="morty" full health -> COLOR_MORTY (yellow)', () => {
+      expect(healthColor(1, 'morty')).toBe(COLOR_MORTY);
+    });
+    it('kind="morty" no health -> COLOR_DECAYED (decay endpoint shared)', () => {
+      expect(healthColor(0, 'morty')).toBe(COLOR_DECAYED);
+    });
+    it('kind="morty" mid health differs from kind="meeseeks" mid', () => {
+      const morty = healthColor(0.5, 'morty');
+      const meeseeks = healthColor(0.5, 'meeseeks');
+      expect(morty).not.toBe(meeseeks);
+      expect(morty).not.toBe(COLOR_MORTY);
+      expect(morty).not.toBe(COLOR_DECAYED);
+    });
   });
 });

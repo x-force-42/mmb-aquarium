@@ -226,4 +226,60 @@ describe('World', () => {
       expect(world.getFreakingOut().map((m) => m.id)).toEqual(['b']);
     });
   });
+
+  describe('kind (andaime view)', () => {
+    it('omits kind from state when not supplied on born', () => {
+      world.handleMessage({ type: 'event', id: 'a', kind: 'born', name: 'noKind' });
+      const got = world.get('a');
+      expect(got).not.toBeNull();
+      expect(got).not.toHaveProperty('kind');
+    });
+
+    it('preserves entityKind:"morty" through a born event', () => {
+      world.handleMessage({
+        type: 'event',
+        id: 'master',
+        kind: 'born',
+        name: 'master',
+        task: 'master',
+        entityKind: 'morty',
+      });
+      expect(world.get('master')?.kind).toBe('morty');
+    });
+
+    it('preserves entityKind:"meeseeks" through a born event', () => {
+      world.handleMessage({
+        type: 'event',
+        id: 'core-X1',
+        kind: 'born',
+        entityKind: 'meeseeks',
+      });
+      expect(world.get('core-X1')?.kind).toBe('meeseeks');
+    });
+
+    it('preserves kind from snapshot entries (mixed archetypes)', () => {
+      world.handleMessage({
+        type: 'snapshot',
+        meeseeks: [
+          { id: 'master', kind: 'morty', name: 'master' },
+          { id: 'core-X1', kind: 'meeseeks' },
+          { id: 'untyped' },
+        ],
+      });
+      expect(world.get('master')?.kind).toBe('morty');
+      expect(world.get('core-X1')?.kind).toBe('meeseeks');
+      expect(world.get('untyped')).not.toHaveProperty('kind');
+    });
+
+    it('emits onBorn with the kind populated', () => {
+      const { spies } = attachSpies(world);
+      world.handleMessage({
+        type: 'event',
+        id: 'm1',
+        kind: 'born',
+        entityKind: 'morty',
+      });
+      expect(spies.onBorn).toHaveBeenCalledWith(expect.objectContaining({ kind: 'morty' }));
+    });
+  });
 });

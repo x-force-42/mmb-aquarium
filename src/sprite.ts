@@ -12,7 +12,7 @@
 
 import { Container, Graphics, Text } from 'pixi.js';
 import { COLOR_DEFEATED, COLOR_FREAK, COLOR_HAPPY, healthColor, lerpColor } from './colors';
-import type { MeeseeksState } from './types';
+import type { MeeseeksKind, MeeseeksState } from './types';
 
 const M_W = 40;
 const M_H = 60;
@@ -50,6 +50,8 @@ export class MeeseeksSprite {
   health: number;
   isFreakingOut: boolean;
   deathState: DeathKind | null = null;
+  /** Visual archetype; `undefined` is treated as the default Meeseeks. */
+  readonly kind: MeeseeksKind | undefined;
 
   private readonly body: Graphics;
   private nameText: Text | null;
@@ -70,6 +72,7 @@ export class MeeseeksSprite {
     this.isFreakingOut = model.isFreakingOut;
     this.freakIntensity = model.isFreakingOut ? 1 : 0;
     this.phaseOffset = Math.random() * Math.PI * 2;
+    this.kind = model.kind;
 
     this.container = new Container();
     this.container.position.set(basePos.x, basePos.y);
@@ -79,7 +82,7 @@ export class MeeseeksSprite {
     this.body.beginFill(0xffffff);
     this.body.drawRect(-M_W / 2, -M_H / 2, M_W, M_H);
     this.body.endFill();
-    this.body.tint = healthColor(this.health);
+    this.body.tint = healthColor(this.health, this.kind);
     this.container.addChild(this.body);
 
     if (model.name) {
@@ -144,7 +147,7 @@ export class MeeseeksSprite {
   private applyDeath(dt: number): void {
     this.deathMs += dt;
     const t = Math.min(1, this.deathMs / DEATH_MS);
-    const baseColor = healthColor(this.health);
+    const baseColor = healthColor(this.health, this.kind);
     if (this.deathState === 'happy') {
       this.body.tint = lerpColor(baseColor, COLOR_HAPPY, t);
       this.container.scale.set(1 + 0.25 * t); // gentle pop
@@ -179,8 +182,8 @@ export class MeeseeksSprite {
           : Math.max(target, this.freakIntensity - step);
     }
 
-    // Color = base (health) + freak pulse on top.
-    const base = healthColor(this.health);
+    // Color = base (health × kind) + freak pulse on top.
+    const base = healthColor(this.health, this.kind);
     let tint = base;
     if (this.freakIntensity > 0) {
       const pulse = (Math.sin(time * 0.016) + 1) * 0.5; // ~2.5 Hz
