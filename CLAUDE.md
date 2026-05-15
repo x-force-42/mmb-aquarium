@@ -38,6 +38,62 @@ Decoupled layers, one-way data flow:
 
 ---
 
+## Andaime view (the aquarium watches its own scaffolding)
+
+This aquarium can render the **MMB scaffolding** as a live scene, with
+the same Meeseeks creatures we already have, plus a yellow **Morty**
+archetype for orchestrators. Symbiosis: the constructor (the andaime
+scaffolding) produces the constructed (this aquarium) that observes the
+constructor itself working.
+
+How:
+
+```
+   /MMB/.tooling/state/agents.jsonl  ─┐
+   /MMB/.tooling/state/heartbeats/   ─┤   andaime-producer.mjs   ─► relay ─► browser
+   /MMB/.tooling/logs/journal.jsonl  ─┘   (translates FS to AppMessage)
+```
+
+`scripts/andaime-producer.mjs` polls the scaffolding's FS surfaces every
+~500 ms and emits **standard** `AppMessage`s (no protocol changes): orq
+spawns become `event:born` with `entityKind:'morty'`; atomic agents
+become `event:born` with `entityKind:'meeseeks'`; deregistrations become
+`event:died_happy`; heartbeat decay becomes `state:health` updates
+(buckets 1.0 / 0.5 / 0.2); journal errors trigger `event:freaking_out`
+on the responsible agent; resolutions trigger `event:recovered`.
+
+The Morty / Meeseeks distinction is purely visual:
+
+- `kind: 'meeseeks'` (default when omitted): blue, the canonical doer.
+- `kind: 'morty'`: yellow, the orchestrator. Same physics & lifecycle.
+
+Run the trio in three terminals:
+
+```
+# terminal 1
+npm run relay                                    # :8080/ws
+
+# terminal 2
+MMB_ROOT=/home/eliezer/llab/MMB \
+  npm run andaime:producer                       # polls FS, sends frames
+
+# terminal 3
+VITE_WS_URL=ws://localhost:8080/ws npm run dev   # browser consumes
+```
+
+The producer is **stateless from the andaime's perspective**: it never
+writes back. The aquarium is **passive**: it only reflects the state it
+receives. The `SimulatorTransport` (buttons) keeps working unchanged
+when `VITE_WS_URL` is unset.
+
+For a one-shot diagnostic snapshot of what would be sent:
+
+```
+MMB_ROOT=/home/eliezer/llab/MMB npm run andaime:producer -- --once
+```
+
+---
+
 ## Local WS relay (browser can't host a server)
 
 The MMB producer team writes against `ws://localhost:8080/ws`, but the
