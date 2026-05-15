@@ -205,6 +205,105 @@ what the producer can expect from the aquarium.
 
 ---
 
+## External publishers (via local relay)
+
+The aquarium is a browser page and cannot open a listening socket. A
+lightweight Node relay (`scripts/ws-relay.mjs`) bridges external producers
+to the browser client:
+
+```
+External producer → relay (Node, :8080/ws) → WebSocketTransport (browser)
+                         broadcasts every frame to all other connected clients
+```
+
+The relay is stateless and transparent: bytes in, same bytes out. It does
+not parse, validate, buffer, or cache.
+
+### Running
+
+```bash
+# Two separate terminals:
+npm run relay    # relay on 0.0.0.0:8080/ws
+npm run dev      # Vite dev server on :5173
+
+# Or start both together with interleaved, color-coded output:
+npm run dev:full
+```
+
+Set `VITE_WS_URL=ws://localhost:8080/ws` in `.env.local` to tell the aquarium
+to use `WebSocketTransport` instead of the default button-driven simulator.
+Leave it unset to keep the simulator experience — that is what the e2e suite
+runs against.
+
+### Relay URL and env vars
+
+| Env var      | Default   | Notes                                                |
+| ------------ | --------- | ---------------------------------------------------- |
+| `PORT`       | `8080`    | TCP port the relay binds to.                         |
+| `RELAY_HOST` | `0.0.0.0` | Bind address. Lock to `127.0.0.1` for loopback-only. |
+
+Default URL (producer on the same host): **`ws://localhost:8080/ws`**
+
+> **WSL / Docker producers.** `127.0.0.1` resolves to the _guest's_ own
+> loopback, not the host's. In WSL2, find the host IP with:
+> `ip route show default | awk '{print $3}'`
+
+### Naming convention
+
+To distinguish domain sources at a glance, prefix the `name` field:
+
+| Prefix   | Domain              | Example `name`         |
+| -------- | ------------------- | ---------------------- |
+| `[W]`    | Workers / jobs      | `[W] worker-core-1234` |
+| `[A]`    | Atomic agents       | `[A] aquarium-1.1`     |
+| _(none)_ | Meeseeks / mmb-core | `Mr. Meeseeks`         |
+
+Use a globally unique `id` across all producers. A safe default:
+`<domain-slug>-<short-id>`, e.g. `worker-core-1234` or `agent-aquarium-1.1`.
+
+### Minimal Python example
+
+Requires `pip install websockets`.
+
+```python
+import asyncio, json
+from websockets.client import connect
+
+RELAY_URL = "ws://localhost:8080/ws"
+
+async def publish():
+    async with connect(RELAY_URL) as ws:
+        # Announce the worker
+        await ws.send(json.dumps({
+            "type": "event",
+            "id": "worker-core-1234",
+            "kind": "born",
+            "name": "[W] worker-core-1234",
+            "task": "processing smoke-comm message"
+        }))
+
+        # Continuous health update
+        await ws.send(json.dumps({
+            "type": "state",
+            "id": "worker-core-1234",
+            "health": 0.6
+        }))
+
+        # Finish successfully
+        await ws.send(json.dumps({
+            "type": "event",
+            "id": "worker-core-1234",
+            "kind": "died_happy"
+        }))
+
+asyncio.run(publish())
+```
+
+For the full `AppMessage` TypeScript type definition see
+[`src/types.ts`](../src/types.ts).
+
+---
+
 ## Open questions for the producer team
 
 The aquarium is interface-frozen; the answers below are entirely the

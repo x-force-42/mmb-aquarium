@@ -38,19 +38,19 @@ If anything is ambiguous, **ask before guessing.**
 
 ### New files
 
-| Path                  | Purpose                                                                                                  |
-| --------------------- | -------------------------------------------------------------------------------------------------------- |
-| `scripts/ws-relay.mjs`| Node ES module. Tiny WS server on `ws://localhost:8080/ws`. Broadcasts every frame to all other clients. |
-| `.env.example`        | `VITE_WS_URL=ws://localhost:8080/ws` plus the existing audio block (preserve what's there).              |
+| Path                   | Purpose                                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| `scripts/ws-relay.mjs` | Node ES module. Tiny WS server on `ws://localhost:8080/ws`. Broadcasts every frame to all other clients. |
+| `.env.example`         | `VITE_WS_URL=ws://localhost:8080/ws` plus the existing audio block (preserve what's there).              |
 
 ### Modified files
 
-| Path           | Change                                                                                                                                                                                                                              |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `package.json` | Add `ws` as a **runtime dependency** (the relay uses it). Add scripts: `"relay": "node scripts/ws-relay.mjs"`. No `concurrently` — two terminals is fine.                                                                            |
+| Path               | Change                                                                                                                                                                                                                                                                                                               |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `package.json`     | Add `ws` as a **runtime dependency** (the relay uses it). Add scripts: `"relay": "node scripts/ws-relay.mjs"`. No `concurrently` — two terminals is fine.                                                                                                                                                            |
 | `src/transport.ts` | Implement `WebSocketTransport.connect()` — open the socket, parse incoming JSON, run through the existing `isAppMessage` guard, call `this.emit(msg)`. On `close`, schedule reconnect with exponential backoff (1, 2, 5, 10, 30 s, ±20 % jitter, no max retries). On `error`, log and let the `close` handler retry. |
-| `src/main.ts`  | Branch on `import.meta.env.VITE_WS_URL`. If set, instantiate `WebSocketTransport(url)` and call `.connect()`; if not, keep using `SimulatorTransport` (current default). Both feed `world.handleMessage` the same way.               |
-| `CLAUDE.md`    | Add a short subsection under the architecture explaining the relay: "the browser can't host WS, so a Node relay bridges MMB to the page; run `npm run relay` alongside `npm run dev`."                                              |
+| `src/main.ts`      | Branch on `import.meta.env.VITE_WS_URL`. If set, instantiate `WebSocketTransport(url)` and call `.connect()`; if not, keep using `SimulatorTransport` (current default). Both feed `world.handleMessage` the same way.                                                                                               |
+| `CLAUDE.md`        | Add a short subsection under the architecture explaining the relay: "the browser can't host WS, so a Node relay bridges MMB to the page; run `npm run relay` alongside `npm run dev`."                                                                                                                               |
 
 ### Out-of-scope
 
