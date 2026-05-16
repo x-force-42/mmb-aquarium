@@ -134,6 +134,57 @@ test.describe('Mr. Meeseeks Aquarium', () => {
     expect(min).toBe(0);
   });
 
+  test.describe('aquarium ux', () => {
+    test('pixi-container background uses a radial-gradient grid', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      const bgImage = await page
+        .locator('#pixi-container')
+        .evaluate((el) => window.getComputedStyle(el).backgroundImage);
+      expect(bgImage).toContain('radial-gradient');
+    });
+
+    test('meeseeks name label stays rendered 5s after spawn', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      await page.evaluate(() => window.__aquarium!.sim.born());
+      await expect.poll(() => page.evaluate(() => window.__aquarium!.world.size())).toBe(1);
+
+      // Intentional real-time wait: the assertion is "label still rendered
+      // after 5s of frames". `expect.poll` can't model "stayed true the
+      // whole time", and there is no DOM signal to await on Pixi state.
+      // eslint-disable-next-line playwright/no-wait-for-timeout -- reason: time is the assertion, not flakiness.
+      await page.waitForTimeout(5_000);
+
+      const inspection = await page.evaluate(() => {
+        const app = window.__aquarium!.renderer.app;
+        // Layer order from Renderer constructor: block, sprite, particle.
+        const spriteLayer = (app.stage as unknown as { children: Array<{ children: unknown[] }> })
+          .children[1];
+        const sprite = spriteLayer?.children[0] as
+          | { alpha: number; children: Array<{ text?: string; alpha: number }> }
+          | undefined;
+        if (!sprite) return null;
+        const label = sprite.children.find((c) => typeof c.text === 'string');
+        return {
+          spriteAlpha: sprite.alpha,
+          labelExists: !!label,
+          labelAlpha: label?.alpha ?? null,
+          labelText: label?.text ?? null,
+        };
+      });
+
+      expect(inspection).not.toBeNull();
+      expect(inspection!.spriteAlpha).toBe(1);
+      expect(inspection!.labelExists).toBe(true);
+      expect(inspection!.labelAlpha).toBe(1);
+      expect(typeof inspection!.labelText).toBe('string');
+      expect((inspection!.labelText as string).length).toBeGreaterThan(0);
+    });
+  });
+
   test.describe('block pile', () => {
     test('Adiciona bloco button increments world.blocks', async ({ page }) => {
       await page.goto('/');
