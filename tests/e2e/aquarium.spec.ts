@@ -134,6 +134,63 @@ test.describe('Mr. Meeseeks Aquarium', () => {
     expect(min).toBe(0);
   });
 
+  test.describe('block pile', () => {
+    test('Adiciona bloco button increments world.blocks', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      await page.locator('#btn-born').click();
+      for (let i = 0; i < 5; i++) {
+        await page.locator('#btn-add-block').click();
+      }
+      await expect
+        .poll(() => page.evaluate(() => window.__aquarium!.world.getAlive()[0]?.blocks ?? -1))
+        .toBe(5);
+    });
+
+    test('blocks cap at 40 even with extra block_added calls', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      await page.evaluate(() => {
+        const a = window.__aquarium!;
+        a.sim.born();
+        for (let i = 0; i < 45; i++) a.sim.addBlock();
+      });
+      await expect
+        .poll(() => page.evaluate(() => window.__aquarium!.world.getAlive()[0]?.blocks ?? -1))
+        .toBe(40);
+    });
+
+    test('death disposes the pile; new Meeseeks starts at 0 blocks', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      await page.evaluate(() => {
+        const a = window.__aquarium!;
+        a.sim.born();
+        a.sim.addBlock();
+        a.sim.addBlock();
+        a.sim.addBlock();
+        a.sim.giveUp();
+      });
+      await expect.poll(() => page.evaluate(() => window.__aquarium!.world.size())).toBe(0);
+
+      await page.evaluate(() => window.__aquarium!.sim.born());
+      await expect
+        .poll(() => page.evaluate(() => window.__aquarium!.world.getAlive()[0]?.blocks ?? -1))
+        .toBe(0);
+    });
+
+    test('addBlock with no Meeseeks is a safe no-op', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      await page.evaluate(() => window.__aquarium!.sim.addBlock());
+      expect(await page.evaluate(() => window.__aquarium!.world.size())).toBe(0);
+    });
+  });
+
   test.describe('audio', () => {
     test('mute toggle starts on by default', async ({ page }) => {
       await page.goto('/');

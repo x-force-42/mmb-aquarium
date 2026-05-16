@@ -15,9 +15,16 @@ export interface MeeseeksState {
   isFreakingOut: boolean;
   name: string | null;
   task: string | null;
+  blocks: number; // 0..BLOCK_CAP work-progress blocks
 }
 
-export type EventKind = 'born' | 'died_happy' | 'died_defeated' | 'freaking_out' | 'recovered';
+export type EventKind =
+  | 'born'
+  | 'died_happy'
+  | 'died_defeated'
+  | 'freaking_out'
+  | 'recovered'
+  | 'block_added';
 
 /** Shape of a Meeseeks as it arrives in a snapshot — fields beyond id are optional. */
 export interface MeeseeksSnapshotEntry {
@@ -42,6 +49,7 @@ export interface WorldEvents {
   onDiedDefeated: (m: MeeseeksState) => void;
   onFreakingOut: (m: MeeseeksState) => void;
   onRecovered: (m: MeeseeksState) => void;
+  onBlockAdded: (m: MeeseeksState) => void;
 }
 
 /** Narrow, read-only adapter that transports use when they need to peek at world state. */
