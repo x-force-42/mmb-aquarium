@@ -11,7 +11,8 @@
  */
 
 import { Container, Graphics, Text } from 'pixi.js';
-import { COLOR_DEFEATED, COLOR_FREAK, COLOR_HAPPY, healthColor, lerpColor } from './colors';
+import { healthColor, lerpColor } from './colors';
+import { getActivePalette } from './theme';
 import type { MeeseeksState } from './types';
 
 const M_W = 40;
@@ -69,18 +70,19 @@ export class MeeseeksSprite {
     this.container.position.set(basePos.x, basePos.y);
 
     // White-filled body so `tint` directly drives the displayed color.
+    const palette = getActivePalette();
     this.body = new Graphics();
-    this.body.beginFill(0xffffff);
+    this.body.beginFill(palette.spriteBase);
     this.body.drawRect(-M_W / 2, -M_H / 2, M_W, M_H);
     this.body.endFill();
-    this.body.tint = healthColor(this.health);
+    this.body.tint = healthColor(this.health, palette);
     this.container.addChild(this.body);
 
     if (model.name) {
       this.nameText = new Text(model.name, {
         fontFamily: 'monospace',
         fontSize: 12,
-        fill: 0x333333,
+        fill: palette.spriteName,
         align: 'center',
       });
       this.nameText.anchor.set(0.5, 1);
@@ -128,6 +130,16 @@ export class MeeseeksSprite {
     return this.deathState !== null && this.deathMs >= DEATH_MS;
   }
 
+  refreshPalette(): void {
+    const palette = getActivePalette();
+    if (this.nameText) {
+      this.nameText.style.fill = palette.spriteName;
+    }
+    if (!this.deathState && this.birthMs <= 0) {
+      this.body.tint = healthColor(this.health, palette);
+    }
+  }
+
   destroy(): void {
     this.container.destroy({ children: true });
   }
@@ -137,12 +149,13 @@ export class MeeseeksSprite {
   private applyDeath(dt: number): void {
     this.deathMs += dt;
     const t = Math.min(1, this.deathMs / DEATH_MS);
-    const baseColor = healthColor(this.health);
+    const palette = getActivePalette();
+    const baseColor = healthColor(this.health, palette);
     if (this.deathState === 'happy') {
-      this.body.tint = lerpColor(baseColor, COLOR_HAPPY, t);
+      this.body.tint = lerpColor(baseColor, palette.happy, t);
       this.container.scale.set(1 + 0.25 * t); // gentle pop
     } else {
-      this.body.tint = lerpColor(baseColor, COLOR_DEFEATED, t);
+      this.body.tint = lerpColor(baseColor, palette.defeated, t);
     }
     this.container.alpha = 1 - t;
   }
@@ -173,11 +186,12 @@ export class MeeseeksSprite {
     }
 
     // Color = base (health) + freak pulse on top.
-    const base = healthColor(this.health);
+    const palette = getActivePalette();
+    const base = healthColor(this.health, palette);
     let tint = base;
     if (this.freakIntensity > 0) {
       const pulse = (Math.sin(time * 0.016) + 1) * 0.5; // ~2.5 Hz
-      tint = lerpColor(base, COLOR_FREAK, pulse * this.freakIntensity);
+      tint = lerpColor(base, palette.freak, pulse * this.freakIntensity);
     }
     this.body.tint = tint;
 

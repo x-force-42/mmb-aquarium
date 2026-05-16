@@ -7,8 +7,8 @@
  */
 
 import { Application, BaseTexture, Container, Graphics, SCALE_MODES } from 'pixi.js';
-import { COLOR_DEFEATED, COLOR_HAPPY } from './colors';
 import { MeeseeksSprite, SPRITE_TUNING, type DeathKind, type SpritePosition } from './sprite';
+import { getActivePalette } from './theme';
 import { Particle } from './particle';
 import type { MeeseeksState } from './types';
 import type { World } from './world';
@@ -96,6 +96,12 @@ export class Renderer {
     world.on('onFreakingOut', (m) => this.handleFreakingOut(m));
     world.on('onRecovered', (m) => this.handleRecovered(m));
     world.on('onBlockAdded', (m) => this.handleBlockAdded(m));
+  }
+
+  refreshPalette(): void {
+    for (const sprite of this.sprites.values()) {
+      sprite.refreshPalette();
+    }
   }
 
   // Test-only inspection hooks (kept narrow so e2e can probe state).
@@ -256,6 +262,7 @@ export class Renderer {
   // -------- Helpers --------
 
   private emitDeathParticles(cx: number, cy: number, kind: DeathKind): void {
+    const palette = getActivePalette();
     if (kind === 'happy') {
       for (let i = 0; i < 10; i++) {
         const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.6;
@@ -265,7 +272,7 @@ export class Renderer {
           cy + (Math.random() - 0.5) * SPRITE_TUNING.M_H,
           Math.cos(angle) * speed,
           Math.sin(angle) * speed,
-          COLOR_HAPPY,
+          palette.happy,
           900 + Math.random() * 400,
           3,
         );
@@ -273,7 +280,7 @@ export class Renderer {
         this.particleLayer.addChild(p.gfx);
       }
     } else {
-      const p = new Particle(cx, cy + SPRITE_TUNING.M_H / 4, 0, 50, COLOR_DEFEATED, 1200, 2);
+      const p = new Particle(cx, cy + SPRITE_TUNING.M_H / 4, 0, 50, palette.defeated, 1200, 2);
       this.particles.push(p);
       this.particleLayer.addChild(p.gfx);
     }

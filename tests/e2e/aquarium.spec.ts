@@ -3,6 +3,7 @@ import type { World } from '../../src/world';
 import type { Renderer } from '../../src/renderer';
 import type { SimulatorTransport } from '../../src/transport';
 import type { AudioPublicHook } from '../../src/audio';
+import type { ThemeMode } from '../../src/theme';
 
 /**
  * E2E guardrails — exercises the wired-up app from the user's POV.
@@ -24,6 +25,7 @@ declare global {
       renderer: Renderer;
       sim: SimulatorTransport;
       audio: AudioPublicHook;
+      theme: { getMode: () => ThemeMode };
     };
   }
 }
@@ -390,6 +392,60 @@ test.describe('Mr. Meeseeks Aquarium', () => {
       expect(after.masterVolume).toBeCloseTo(0.3, 5);
       expect(after.ambientVolume).toBeCloseTo(0.15, 5);
       expect(after.muted).toBe(true); // mute resets to default each load
+    });
+  });
+
+  test.describe('theme', () => {
+    test('defaults to light mode on first load', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+      expect(await page.evaluate(() => window.__aquarium!.theme.getMode())).toBe('light');
+    });
+
+    test('toggle switches to dark mode and changes background color', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      const bgBefore = await page
+        .locator('#pixi-container')
+        .evaluate((el) => window.getComputedStyle(el).backgroundColor);
+
+      await page.locator('#btn-theme').click();
+
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+      expect(await page.evaluate(() => window.__aquarium!.theme.getMode())).toBe('dark');
+
+      const bgAfter = await page
+        .locator('#pixi-container')
+        .evaluate((el) => window.getComputedStyle(el).backgroundColor);
+      expect(bgAfter).not.toBe(bgBefore);
+    });
+
+    test('toggle is binary: dark -> light on second click', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      await page.locator('#btn-theme').click();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+      await page.locator('#btn-theme').click();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    });
+
+    test('theme persists across reload', async ({ page }) => {
+      await page.goto('/');
+      await waitForBoot(page);
+
+      await page.locator('#btn-theme').click();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+      await page.reload();
+      await waitForBoot(page);
+
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+      expect(await page.evaluate(() => window.__aquarium!.theme.getMode())).toBe('dark');
     });
   });
 });
