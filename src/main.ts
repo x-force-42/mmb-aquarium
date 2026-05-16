@@ -13,6 +13,7 @@ import { SimulatorTransport, WebSocketTransport } from './transport';
 import { World } from './world';
 import { AudioSystem, type AudioPublicHook } from './audio';
 import { parseAudioConfig } from './audio-config';
+import { applyTheme, getActiveMode, initTheme, type ThemeMode } from './theme';
 
 declare global {
   interface Window {
@@ -22,11 +23,14 @@ declare global {
       renderer: Renderer;
       sim: SimulatorTransport;
       audio: AudioPublicHook;
+      theme: { getMode: () => ThemeMode };
     };
   }
 }
 
 function boot(): void {
+  initTheme();
+
   const container = document.getElementById('pixi-container');
   if (!container) throw new Error('main.ts: missing #pixi-container');
 
@@ -98,6 +102,25 @@ function boot(): void {
     refreshMute();
   }
 
+  // Theme toggle: light ↔ dark. Repaint sprites on change.
+  const themeBtn = document.getElementById('btn-theme');
+  if (themeBtn) {
+    const refreshTheme = (): void => {
+      const dark = getActiveMode() === 'dark';
+      themeBtn.textContent = dark ? '☀️' : '🌙';
+      themeBtn.setAttribute('aria-label', dark ? 'Ativar modo claro' : 'Ativar modo escuro');
+      themeBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+    };
+    themeBtn.addEventListener('click', () => {
+      applyTheme(getActiveMode() === 'dark' ? 'light' : 'dark');
+      refreshTheme();
+    });
+    document.addEventListener('mmb:theme-change', () => {
+      renderer.refreshPalette();
+    });
+    refreshTheme();
+  }
+
   // Audio settings popover: ambient toggle + master / ambient volume sliders.
   // State is read from the AudioSystem so persisted prefs already drive the
   // initial values (defaults: ambient on, master 100%, ambient 40%).
@@ -140,7 +163,7 @@ function boot(): void {
   }
 
   // Stable handle for e2e tests / devtools poking.
-  window.__aquarium = { world, renderer, sim, audio };
+  window.__aquarium = { world, renderer, sim, audio, theme: { getMode: getActiveMode } };
 }
 
 if (document.readyState === 'loading') {

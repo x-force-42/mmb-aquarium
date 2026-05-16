@@ -22,7 +22,12 @@ export function lerpColor(c1: number, c2: number, t: number): number {
 }
 
 /** health=1 -> healthy color, health=0 -> decayed color. Clamps internally. */
-export function healthColor(health: number): number {
+export function healthColor(
+  health: number,
+  palette?: { healthy: number; decayed: number },
+): number {
+  const healthy = palette?.healthy ?? COLOR_HEALTHY;
+  const decayed = palette?.decayed ?? COLOR_DECAYED;
   const t = 1 - Math.max(0, Math.min(1, health));
-  return lerpColor(COLOR_HEALTHY, COLOR_DECAYED, t);
+  return lerpColor(healthy, decayed, t);
 }

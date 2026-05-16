@@ -3,15 +3,41 @@
   <head>
     <meta charset="UTF-8" />
     <title>Mr. Meeseeks Aquarium</title>
+    <!-- Anti-FOUC: apply saved theme before any paint. -->
+    <script>
+      (function () {
+        var s = localStorage.getItem('mmb-theme');
+        document.documentElement.setAttribute('data-theme', s === 'dark' ? 'dark' : 'light');
+      })();
+    </script>
     <style>
+      :root {
+        --bg: #fafaf7;
+        --surface: #fff;
+        --border: #ddd;
+        --text: #555;
+        --text-muted: #999;
+        --dot-grid: #c8c8d0;
+        --vignette: rgba(0, 0, 0, 0.06);
+      }
+      [data-theme='dark'] {
+        --bg: #1a1a1f;
+        --surface: #25252c;
+        --border: #3a3a44;
+        --text: #d8d8e0;
+        --text-muted: #8888a0;
+        --dot-grid: #2a2a34;
+        --vignette: rgba(0, 0, 0, 0.35);
+      }
+
       html,
       body {
         margin: 0;
         padding: 0;
         height: 100%;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        color: #333;
-        background: #ececec;
+        color: var(--text);
+        background: var(--bg);
       }
       body {
         display: flex;
@@ -20,8 +46,8 @@
       }
       header {
         padding: 10px 16px;
-        background: #fafafa;
-        border-bottom: 1px solid #ddd;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
@@ -31,13 +57,14 @@
         font-size: 16px;
         font-weight: 600;
         margin: 0 12px 0 0;
-        color: #555;
+        color: var(--text);
       }
       header button {
         font-size: 13px;
         padding: 6px 12px;
-        border: 1px solid #bbb;
-        background: #fff;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text);
         border-radius: 4px;
         cursor: pointer;
         transition:
@@ -45,21 +72,20 @@
           border-color 0.15s;
       }
       header button:hover {
-        background: #f0f0f0;
-        border-color: #999;
+        filter: brightness(0.93);
       }
       header button:active {
-        background: #e5e5e5;
+        filter: brightness(0.86);
       }
       #pixi-container {
         flex: 1;
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: #fafaf7;
+        background-color: var(--bg);
         background-image:
-          radial-gradient(ellipse at center, rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, 0.06) 100%),
-          radial-gradient(circle, #c8c8d0 1.2px, transparent 1.6px);
+          radial-gradient(ellipse at center, transparent 55%, var(--vignette) 100%),
+          radial-gradient(circle, var(--dot-grid) 1.2px, transparent 1.6px);
         background-size:
           100% 100%,
           22px 22px;
@@ -77,7 +103,7 @@
       .counter {
         margin-left: auto;
         font-size: 12px;
-        color: #777;
+        color: var(--text-muted);
       }
 
       /* Audio settings popover ------------------------------------------------ */
@@ -90,8 +116,9 @@
         user-select: none;
         font-size: 13px;
         padding: 6px 12px;
-        border: 1px solid #bbb;
-        background: #fff;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text);
         border-radius: 4px;
         transition:
           background 0.15s,
@@ -101,11 +128,10 @@
         display: none;
       }
       .audio-panel-wrapper > summary:hover {
-        background: #f0f0f0;
-        border-color: #999;
+        filter: brightness(0.93);
       }
       .audio-panel-wrapper[open] > summary {
-        background: #e5e5e5;
+        filter: brightness(0.86);
       }
       .audio-panel {
         position: absolute;
@@ -113,10 +139,10 @@
         right: 0;
         min-width: 240px;
         padding: 12px;
-        background: #fff;
-        border: 1px solid #ccc;
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: 6px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -127,7 +153,7 @@
         align-items: center;
         gap: 8px;
         font-size: 12px;
-        color: #444;
+        color: var(--text);
       }
       .audio-row > span:first-child {
         flex: 0 0 90px;
@@ -143,7 +169,7 @@
         min-width: 2.8em;
         text-align: right;
         font-variant-numeric: tabular-nums;
-        color: #777;
+        color: var(--text-muted);
       }
     </style>
   </head>
@@ -158,6 +184,7 @@
       <button id="btn-decay">Decai saúde de todos</button>
       <button id="btn-add-block">Adiciona bloco (aleat.)</button>
       <button id="btn-mute" aria-label="Ativar som" aria-pressed="true">🔇</button>
+      <button id="btn-theme" aria-label="Ativar modo escuro" aria-pressed="false">🌙</button>
       <details class="audio-panel-wrapper" id="audio-panel-wrapper">
         <summary id="btn-audio-panel" aria-label="Configurações de áudio">⚙️</summary>
         <div class="audio-panel" role="group" aria-label="Configurações de áudio">
