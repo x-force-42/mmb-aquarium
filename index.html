@@ -56,7 +56,16 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: radial-gradient(ellipse at center, #fafaf7 0%, #ececec 70%, #dcdcdc 100%);
+        background-color: #fafaf7;
+        background-image:
+          radial-gradient(ellipse at center, rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, 0.06) 100%),
+          radial-gradient(circle, #c8c8d0 1.2px, transparent 1.6px);
+        background-size:
+          100% 100%,
+          22px 22px;
+        background-position:
+          0 0,
+          0 0;
         overflow: hidden;
       }
       /* Pixel art ready: nearest-neighbor scaling for the canvas. */

@@ -19,8 +19,6 @@ const M_H = 60;
 
 const BIRTH_MS = 500;
 const DEATH_MS = 1500;
-const NAME_VISIBLE_MS = 3000;
-const NAME_FADE_MS = 600;
 const FREAK_RAMP_MS = 300;
 
 const TREMOR_HEALTH_TH = 0.3;
@@ -38,8 +36,6 @@ export const SPRITE_TUNING = {
   M_H,
   BIRTH_MS,
   DEATH_MS,
-  NAME_VISIBLE_MS,
-  NAME_FADE_MS,
 } as const;
 
 export class MeeseeksSprite {
@@ -58,8 +54,6 @@ export class MeeseeksSprite {
   // Animation timers (ms).
   private birthMs = BIRTH_MS;
   private deathMs = 0;
-  private nameVisibleMs = NAME_VISIBLE_MS;
-  private nameFadeMs = NAME_FADE_MS;
   private freakIntensity: number;
   private readonly birthOffsetY = 8;
 
@@ -112,7 +106,6 @@ export class MeeseeksSprite {
       return;
     }
     this.applyIdle(dt, time);
-    this.applyNameFade(dt);
   }
 
   // -------- World event hooks --------
@@ -203,22 +196,5 @@ export class MeeseeksSprite {
       jitterY += (Math.random() - 0.5) * 6 * this.freakIntensity;
     }
     this.container.position.set(this.basePos.x + jitterX, this.basePos.y + bob + jitterY);
-  }
-
-  private applyNameFade(dt: number): void {
-    if (!this.nameText) return;
-    if (this.nameVisibleMs > 0) {
-      this.nameVisibleMs -= dt;
-      return;
-    }
-    if (this.nameFadeMs > 0) {
-      this.nameFadeMs = Math.max(0, this.nameFadeMs - dt);
-      this.nameText.alpha = this.nameFadeMs / NAME_FADE_MS;
-      if (this.nameFadeMs === 0) {
-        this.container.removeChild(this.nameText);
-        this.nameText.destroy();
-        this.nameText = null;
-      }
-    }
   }
 }
