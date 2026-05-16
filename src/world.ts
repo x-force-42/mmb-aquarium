@@ -19,8 +19,18 @@ function clamp01(n: number): number {
 
 /** Returns a defensive shallow copy so callers can't mutate internal state. */
 function copy(m: MeeseeksState): MeeseeksState {
-  return { id: m.id, health: m.health, isFreakingOut: m.isFreakingOut, name: m.name, task: m.task };
+  return {
+    id: m.id,
+    health: m.health,
+    isFreakingOut: m.isFreakingOut,
+    name: m.name,
+    task: m.task,
+    blocks: m.blocks,
+  };
 }
+
+/** Hard cap on the per-Meeseeks progress-block pile. Beyond this, `block_added` no-ops. */
+export const BLOCK_CAP = 40;
 
 export class World implements WorldQuery {
   private readonly state = new Map<MeeseeksId, MeeseeksState>();
@@ -89,6 +99,7 @@ export class World implements WorldQuery {
         isFreakingOut: !!raw.isFreakingOut,
         name: raw.name ?? null,
         task: raw.task ?? null,
+        blocks: 0,
       };
       this.state.set(m.id, m);
       this.emitter.emit('onBorn', copy(m));
@@ -116,6 +127,7 @@ export class World implements WorldQuery {
           isFreakingOut: false,
           name: msg.name ?? null,
           task: msg.task ?? null,
+          blocks: 0,
         };
         this.state.set(id, m);
         this.emitter.emit('onBorn', copy(m));
@@ -147,6 +159,14 @@ export class World implements WorldQuery {
         if (!m || !m.isFreakingOut) return;
         m.isFreakingOut = false;
         this.emitter.emit('onRecovered', copy(m));
+        return;
+      }
+      case 'block_added': {
+        const m = this.state.get(id);
+        if (!m) return; // unknown id — drop
+        if (m.blocks >= BLOCK_CAP) return; // hard cap; further blocks ignored
+        m.blocks += 1;
+        this.emitter.emit('onBlockAdded', copy(m));
         return;
       }
     }

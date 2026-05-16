@@ -17,6 +17,7 @@ function attachSpies(w: World): {
     'onDiedDefeated',
     'onFreakingOut',
     'onRecovered',
+    'onBlockAdded',
   ];
   const spies = {} as { [K in keyof WorldEvents]: ReturnType<typeof vi.fn> };
   const offs: Array<() => void> = [];
@@ -45,6 +46,7 @@ describe('World', () => {
         isFreakingOut: false,
         name: 'Bob',
         task: 'jar',
+        blocks: 0,
       });
       expect(spies.onBorn).toHaveBeenCalledTimes(1);
       expect(spies.onBorn).toHaveBeenCalledWith(
@@ -66,6 +68,7 @@ describe('World', () => {
         isFreakingOut: false,
         name: null,
         task: null,
+        blocks: 0,
       });
     });
 
@@ -192,6 +195,7 @@ describe('World', () => {
         isFreakingOut: true,
         name: 'X',
         task: null,
+        blocks: 0,
       });
       expect(world.get('y')).toEqual({
         id: 'y',
@@ -199,6 +203,7 @@ describe('World', () => {
         isFreakingOut: false,
         name: null,
         task: null,
+        blocks: 0,
       });
     });
 
@@ -208,6 +213,53 @@ describe('World', () => {
         meeseeks: [{ id: 'z', health: 2 }],
       });
       expect(world.get('z')?.health).toBe(1);
+    });
+  });
+
+  describe('block_added', () => {
+    beforeEach(() => world.handleMessage({ type: 'event', id: 'a', kind: 'born' }));
+
+    it('increments blocks and emits onBlockAdded once', () => {
+      const { spies } = attachSpies(world);
+      world.handleMessage({ type: 'event', id: 'a', kind: 'block_added' });
+      expect(world.get('a')?.blocks).toBe(1);
+      expect(spies.onBlockAdded).toHaveBeenCalledTimes(1);
+      expect(spies.onBlockAdded).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'a', blocks: 1 }),
+      );
+    });
+
+    it('accumulates over many calls', () => {
+      for (let i = 0; i < 5; i++) {
+        world.handleMessage({ type: 'event', id: 'a', kind: 'block_added' });
+      }
+      expect(world.get('a')?.blocks).toBe(5);
+    });
+
+    it('caps at 40; extra block_added events are no-ops', () => {
+      const { spies } = attachSpies(world);
+      for (let i = 0; i < 45; i++) {
+        world.handleMessage({ type: 'event', id: 'a', kind: 'block_added' });
+      }
+      expect(world.get('a')?.blocks).toBe(40);
+      expect(spies.onBlockAdded).toHaveBeenCalledTimes(40);
+    });
+
+    it('drops block_added for unknown ids without side effects', () => {
+      const { spies } = attachSpies(world);
+      world.handleMessage({ type: 'event', id: 'ghost', kind: 'block_added' });
+      expect(spies.onBlockAdded).not.toHaveBeenCalled();
+      expect(world.get('ghost')).toBeNull();
+    });
+
+    it('leaves health and isFreakingOut untouched', () => {
+      world.handleMessage({ type: 'state', id: 'a', health: 0.42 });
+      world.handleMessage({ type: 'event', id: 'a', kind: 'freaking_out' });
+      world.handleMessage({ type: 'event', id: 'a', kind: 'block_added' });
+      const m = world.get('a');
+      expect(m?.health).toBe(0.42);
+      expect(m?.isFreakingOut).toBe(true);
+      expect(m?.blocks).toBe(1);
     });
   });
 

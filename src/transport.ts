@@ -59,6 +59,7 @@ export interface SimulatorButtonIds {
   freakingOut: string;
   recovered: string;
   decay: string;
+  addBlock: string;
 }
 
 /**
@@ -134,6 +135,14 @@ export class SimulatorTransport extends TransportBase {
     this.randomEvent('recovered', () => this.query.getFreakingOut());
   }
 
+  addBlock(id?: string): void {
+    const list = this.query.getAlive();
+    if (list.length === 0) return;
+    const target =
+      id !== undefined ? (list.find((m) => m.id === id) ?? this.pick(list)) : this.pick(list);
+    this.emit({ type: 'event', id: target.id, kind: 'block_added' });
+  }
+
   decayAll(amount: number = 0.1): void {
     for (const m of this.query.getAll()) {
       const next = Math.max(0, +(m.health - amount).toFixed(3));
@@ -160,6 +169,7 @@ export class SimulatorTransport extends TransportBase {
     wire(ids.freakingOut, () => this.triggerFreakOut());
     wire(ids.recovered, () => this.recover());
     wire(ids.decay, () => this.decayAll());
+    wire(ids.addBlock, () => this.addBlock());
   }
 
   // ----- Internals -----

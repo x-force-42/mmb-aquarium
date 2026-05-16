@@ -65,6 +65,7 @@ function boot(): void {
       freakingOut: 'btn-freaking-out',
       recovered: 'btn-recovered',
       decay: 'btn-decay',
+      addBlock: 'btn-add-block',
     });
   }
 
