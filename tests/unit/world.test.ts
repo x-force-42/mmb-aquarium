@@ -47,6 +47,7 @@ describe('World', () => {
         name: 'Bob',
         task: 'jar',
         blocks: 0,
+        role: 'unknown',
       });
       expect(spies.onBorn).toHaveBeenCalledTimes(1);
       expect(spies.onBorn).toHaveBeenCalledWith(
@@ -69,7 +70,38 @@ describe('World', () => {
         name: null,
         task: null,
         blocks: 0,
+        role: 'unknown',
       });
+    });
+
+    it('assigns role "planner" for [W] prefix name', () => {
+      world.handleMessage({
+        type: 'event',
+        id: 'w1',
+        kind: 'born',
+        name: '[W] worker-core-999',
+      });
+      expect(world.get('w1')?.role).toBe('planner');
+    });
+
+    it('assigns role "atomic" for [A] prefix name', () => {
+      world.handleMessage({
+        type: 'event',
+        id: 'a1',
+        kind: 'born',
+        name: '[A] atomic-task-A1',
+      });
+      expect(world.get('a1')?.role).toBe('atomic');
+    });
+
+    it('assigns role "unknown" for name without prefix', () => {
+      world.handleMessage({ type: 'event', id: 'u1', kind: 'born', name: 'free-name' });
+      expect(world.get('u1')?.role).toBe('unknown');
+    });
+
+    it('assigns role "unknown" when name is absent', () => {
+      world.handleMessage({ type: 'event', id: 'u2', kind: 'born' });
+      expect(world.get('u2')?.role).toBe('unknown');
     });
 
     it('ignores duplicate born for an existing id', () => {
@@ -196,6 +228,7 @@ describe('World', () => {
         name: 'X',
         task: null,
         blocks: 0,
+        role: 'unknown',
       });
       expect(world.get('y')).toEqual({
         id: 'y',
@@ -204,6 +237,7 @@ describe('World', () => {
         name: null,
         task: null,
         blocks: 0,
+        role: 'unknown',
       });
     });
 

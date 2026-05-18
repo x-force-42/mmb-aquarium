@@ -82,6 +82,7 @@ function model(overrides: Partial<MeeseeksState> = {}): MeeseeksState {
     name: 'Test Meeseeks',
     task: null,
     blocks: 0,
+    role: 'unknown',
     ...overrides,
   };
 }

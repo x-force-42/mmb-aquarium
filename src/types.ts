@@ -5,6 +5,8 @@
  * can import these without dragging in DOM or Pixi.
  */
 
+import type { AgentRole } from './agent-role';
+
 // eslint-disable-next-line sonarjs/redundant-type-aliases -- reason: kept as a documentation handle ("this string is a Meeseeks id"); structural typing is intentional.
 export type MeeseeksId = string;
 
@@ -16,6 +18,7 @@ export interface MeeseeksState {
   name: string | null;
   task: string | null;
   blocks: number; // 0..BLOCK_CAP work-progress blocks
+  role: AgentRole;
 }
 
 export type EventKind =

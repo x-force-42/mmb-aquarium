@@ -8,6 +8,7 @@
  */
 
 import { Emitter } from './emitter';
+import { parseAgentRole } from './agent-role';
 import type { AppMessage, MeeseeksId, MeeseeksState, WorldEvents, WorldQuery } from './types';
 
 function clamp01(n: number): number {
@@ -26,6 +27,7 @@ function copy(m: MeeseeksState): MeeseeksState {
     name: m.name,
     task: m.task,
     blocks: m.blocks,
+    role: m.role,
   };
 }
 
@@ -100,6 +102,7 @@ export class World implements WorldQuery {
         name: raw.name ?? null,
         task: raw.task ?? null,
         blocks: 0,
+        role: parseAgentRole(raw.name),
       };
       this.state.set(m.id, m);
       this.emitter.emit('onBorn', copy(m));
@@ -128,6 +131,7 @@ export class World implements WorldQuery {
           name: msg.name ?? null,
           task: msg.task ?? null,
           blocks: 0,
+          role: parseAgentRole(msg.name),
         };
         this.state.set(id, m);
         this.emitter.emit('onBorn', copy(m));

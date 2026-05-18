@@ -62,8 +62,24 @@ describe('SimulatorTransport', () => {
 
   it('killHappy picks a random alive Meeseeks and emits died_happy', () => {
     query.set([
-      { id: 'a', health: 1, isFreakingOut: false, name: null, task: null, blocks: 0 },
-      { id: 'b', health: 1, isFreakingOut: false, name: null, task: null, blocks: 0 },
+      {
+        id: 'a',
+        health: 1,
+        isFreakingOut: false,
+        name: null,
+        task: null,
+        blocks: 0,
+        role: 'unknown',
+      },
+      {
+        id: 'b',
+        health: 1,
+        isFreakingOut: false,
+        name: null,
+        task: null,
+        blocks: 0,
+        role: 'unknown',
+      },
     ]);
     const sim = new SimulatorTransport(query, { random: () => 0.5 }); // -> index 1
     const msgs = tape(sim);
@@ -80,8 +96,24 @@ describe('SimulatorTransport', () => {
 
   it('triggerFreakOut only considers non-freaking Meeseeks', () => {
     query.set([
-      { id: 'a', health: 1, isFreakingOut: true, name: null, task: null, blocks: 0 },
-      { id: 'b', health: 1, isFreakingOut: false, name: null, task: null, blocks: 0 },
+      {
+        id: 'a',
+        health: 1,
+        isFreakingOut: true,
+        name: null,
+        task: null,
+        blocks: 0,
+        role: 'unknown',
+      },
+      {
+        id: 'b',
+        health: 1,
+        isFreakingOut: false,
+        name: null,
+        task: null,
+        blocks: 0,
+        role: 'unknown',
+      },
     ]);
     const sim = new SimulatorTransport(query, { random: () => 0 });
     const msgs = tape(sim);
@@ -91,8 +123,24 @@ describe('SimulatorTransport', () => {
 
   it('recover picks from freaking only', () => {
     query.set([
-      { id: 'a', health: 1, isFreakingOut: true, name: null, task: null, blocks: 0 },
-      { id: 'b', health: 1, isFreakingOut: false, name: null, task: null, blocks: 0 },
+      {
+        id: 'a',
+        health: 1,
+        isFreakingOut: true,
+        name: null,
+        task: null,
+        blocks: 0,
+        role: 'unknown',
+      },
+      {
+        id: 'b',
+        health: 1,
+        isFreakingOut: false,
+        name: null,
+        task: null,
+        blocks: 0,
+        role: 'unknown',
+      },
     ]);
     const sim = new SimulatorTransport(query, { random: () => 0 });
     const msgs = tape(sim);
@@ -102,8 +150,24 @@ describe('SimulatorTransport', () => {
 
   it('decayAll emits a state msg per Meeseeks with health reduced and floored at 0', () => {
     query.set([
-      { id: 'a', health: 1.0, isFreakingOut: false, name: null, task: null, blocks: 0 },
-      { id: 'b', health: 0.05, isFreakingOut: false, name: null, task: null, blocks: 0 },
+      {
+        id: 'a',
+        health: 1.0,
+        isFreakingOut: false,
+        name: null,
+        task: null,
+        blocks: 0,
+        role: 'unknown',
+      },
+      {
+        id: 'b',
+        health: 0.05,
+        isFreakingOut: false,
+        name: null,
+        task: null,
+        blocks: 0,
+        role: 'unknown',
+      },
     ]);
     const sim = new SimulatorTransport(query);
     const msgs = tape(sim);
@@ -115,7 +179,17 @@ describe('SimulatorTransport', () => {
   });
 
   it('decayAll respects a custom amount', () => {
-    query.set([{ id: 'a', health: 0.7, isFreakingOut: false, name: null, task: null, blocks: 0 }]);
+    query.set([
+      {
+        id: 'a',
+        health: 0.7,
+        isFreakingOut: false,
+        name: null,
+        task: null,
+        blocks: 0,
+        role: 'unknown',
+      },
+    ]);
     const sim = new SimulatorTransport(query);
     const msgs = tape(sim);
     sim.decayAll(0.2);
@@ -177,7 +251,17 @@ describe('SimulatorTransport', () => {
       expect(msgs.at(-1)).toMatchObject({ type: 'event', kind: 'born' });
 
       // Seed the query so addBlock has a target.
-      query.set([{ id: 'x', health: 1, isFreakingOut: false, name: null, task: null, blocks: 0 }]);
+      query.set([
+        {
+          id: 'x',
+          health: 1,
+          isFreakingOut: false,
+          name: null,
+          task: null,
+          blocks: 0,
+          role: 'unknown',
+        },
+      ]);
       document.getElementById('b7')!.click(); // addBlock
       expect(msgs.at(-1)).toMatchObject({ type: 'event', id: 'x', kind: 'block_added' });
     });

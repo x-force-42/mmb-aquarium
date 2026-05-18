@@ -13,6 +13,7 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import { healthColor, lerpColor } from './colors';
 import { getActivePalette } from './theme';
+import type { Palette } from './theme';
 import type { MeeseeksState } from './types';
 
 const M_W = 40;
@@ -48,6 +49,7 @@ export class MeeseeksSprite {
   isFreakingOut: boolean;
   deathState: DeathKind | null = null;
 
+  private readonly role: MeeseeksState['role'];
   private readonly body: Graphics;
   private nameText: Text | null;
   private readonly phaseOffset: number;
@@ -63,6 +65,7 @@ export class MeeseeksSprite {
     this.basePos = basePos;
     this.health = model.health;
     this.isFreakingOut = model.isFreakingOut;
+    this.role = model.role;
     this.freakIntensity = model.isFreakingOut ? 1 : 0;
     this.phaseOffset = Math.random() * Math.PI * 2;
 
@@ -75,7 +78,7 @@ export class MeeseeksSprite {
     this.body.beginFill(palette.spriteBase);
     this.body.drawRect(-M_W / 2, -M_H / 2, M_W, M_H);
     this.body.endFill();
-    this.body.tint = healthColor(this.health, palette);
+    this.body.tint = this.baseColor(palette);
     this.container.addChild(this.body);
 
     if (model.name) {
@@ -136,8 +139,13 @@ export class MeeseeksSprite {
       this.nameText.style.fill = palette.spriteName;
     }
     if (!this.deathState && this.birthMs <= 0) {
-      this.body.tint = healthColor(this.health, palette);
+      this.body.tint = this.baseColor(palette);
     }
+  }
+
+  /** Base color before freak/death modulation: planners are yellow, others follow health. */
+  private baseColor(palette: Palette): number {
+    return this.role === 'planner' ? palette.plannerTint : healthColor(this.health, palette);
   }
 
   destroy(): void {
@@ -150,12 +158,12 @@ export class MeeseeksSprite {
     this.deathMs += dt;
     const t = Math.min(1, this.deathMs / DEATH_MS);
     const palette = getActivePalette();
-    const baseColor = healthColor(this.health, palette);
+    const base = this.baseColor(palette);
     if (this.deathState === 'happy') {
-      this.body.tint = lerpColor(baseColor, palette.happy, t);
+      this.body.tint = lerpColor(base, palette.happy, t);
       this.container.scale.set(1 + 0.25 * t); // gentle pop
     } else {
-      this.body.tint = lerpColor(baseColor, palette.defeated, t);
+      this.body.tint = lerpColor(base, palette.defeated, t);
     }
     this.container.alpha = 1 - t;
   }
@@ -185,9 +193,9 @@ export class MeeseeksSprite {
           : Math.max(target, this.freakIntensity - step);
     }
 
-    // Color = base (health) + freak pulse on top.
+    // Color = base (health or plannerTint) + freak pulse on top.
     const palette = getActivePalette();
-    const base = healthColor(this.health, palette);
+    const base = this.baseColor(palette);
     let tint = base;
     if (this.freakIntensity > 0) {
       const pulse = (Math.sin(time * 0.016) + 1) * 0.5; // ~2.5 Hz

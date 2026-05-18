@@ -8,6 +8,7 @@ export type Palette = {
   defeated: number;
   spriteBase: number;
   spriteName: number;
+  plannerTint: number;
 };
 
 export const THEME_STORAGE_KEY = 'mmb-theme';
@@ -20,6 +21,7 @@ const LIGHT: Palette = {
   defeated: 0x6e6e6e,
   spriteBase: 0xffffff,
   spriteName: 0x333333,
+  plannerTint: 0xf5dc4e,
 };
 
 const DARK: Palette = {
@@ -30,6 +32,7 @@ const DARK: Palette = {
   defeated: 0x888888,
   spriteBase: 0xe8e8e8,
   spriteName: 0xb8b8b8,
+  plannerTint: 0xffe055,
 };
 
 let _mode: ThemeMode = 'light';
